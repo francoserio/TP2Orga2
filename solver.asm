@@ -147,3 +147,75 @@ solver_set_bnd:
 
 ;global solver_project
 solver_project:
+
+	push rbp				;alineada
+	mov rsp, rbp
+	push rbx				;desalineada
+	push r13				;alineada
+	push r14				;desalineada
+	push r15				;alineada
+
+
+	mov r15, rdi ; solver
+	mov r14, rsi ; p
+	mov r13, rdx ; div
+
+	; FOR_EACH_CELL
+	; 	div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
+	; 	p[IX(i,j)] = 0;
+	; END_FOR	
+
+	.primerCicloOut:
+	.primerCicloIn:
+	; COMPLETAR
+	jmp .primerCicloIn
+	jmp .primerCicloOut
+
+
+	; 	solver_set_bnd ( solver, 0, div ); 
+	mov rdi, r15
+	mov rsi, 0
+	mov rdx, r13
+	call solver_set_bnd
+	; 	solver_set_bnd ( solver, 0, p );
+	mov rdi, r15
+	mov rsi, 0
+	mov rdx, r14
+	; 	solver_lin_solve ( solver, 0, p, div, 1, 4 );
+	mov rdi, r15
+	mov rsi, 0
+	mov rdx, r14
+	mov rcx, r13
+	mov r8, 1
+	mov r9, 4
+	call solver_lin_solve
+
+	; FOR_EACH_CELL
+	; 	solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
+	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]);
+	; END_FOR
+
+	.segundoCicloOut:
+	.segundoCicloIn:
+	; COMPLETAR
+	jmp .segundoCicloIn
+	jmp .segundoCicloOut
+
+
+	; solver_set_bnd ( solver, 1, solver->u );
+	mov rdi, r15
+	mov rsi, 1
+	mov rdx, [rdi + offset_fluid_solver_u]
+	call solver_set_bnd 
+	; solver_set_bnd ( solver, 2, solver->v );
+	mov rdi, r15
+	mov rsi, 1
+	mov rdx, [rdi + offset_fluid_solver_v]
+	call solver_set_bnd 
+
+	pop r15
+	pop r14
+	pop r13
+	pop rbx
+	pop rbp
+	ret
