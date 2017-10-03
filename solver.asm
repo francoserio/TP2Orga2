@@ -160,16 +160,55 @@ solver_project:
 	mov r14, rsi ; p
 	mov r13, rdx ; div
 
+	pxor xmm3, xmm3
+	movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
+	
+	pxor xmm4, xmm4
+	movdqu xmm4, [r15 + offset_fluid_solver_N]
+	movdqu xmm5, xmm4
+	pslldq xmm5, 4
+	paddusb xmm4, xmm5
+	pslldq xmm5, 4
+	paddusb xmm4, xmm5
+	pslldq xmm5, 4
+	paddusb xmm4, xmm5 ;xmm3 = | N | N | N | N |
+
+	pxor xmm5, xmm5
+	pxor xmm6, xmm6
+	pxor xmm7, xmm7
+	pxor xmm8, xmm8
 	; FOR_EACH_CELL
 	; 	div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
 	; 	p[IX(i,j)] = 0;
-	; END_FOR	
+	; END_FOR
 
-	.primerCicloOut:
-	.primerCicloIn:
-	; COMPLETAR
-	jmp .primerCicloIn
-	jmp .primerCicloOut
+	; Siempre agarro 4 conjuntos de 4 pixels, arriba actual abajo, siguiente
+	; comienzo de fila
+	; b b b b - - - - - - - - 
+	; a a a a d d d d - - - -
+	; c c c c - - - - - - - -
+	; - - - - - - - - - - - -
+	; c - b
+	; ciclo
+	; - - - - x x x x - - - - 
+	; x x x x a a a a x x x x
+	; - - - - x x x x - - - -
+	; - - - - - - - - - - - -
+	; fin de fila
+	; - - - - - - - - x x x x
+	; - - - - x x x x a a a a
+	; - - - - - - - - x x x x
+	; - - - - - - - - - - - -
+	; La unica diferencia es que aca opero con todo junto
+
+	.primerCiclo:
+	.principioFilaPC:
+
+	.cicloPC:
+
+	.finFilaPC:
+
+	jmp .primerCiclo
 
 
 	; 	solver_set_bnd ( solver, 0, div ); 
@@ -191,15 +230,57 @@ solver_project:
 	call solver_lin_solve
 
 	; FOR_EACH_CELL
+	
 	; 	solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
+	; mascaras:
+	; a = 0.5 0.5 0.5 0.5
+	; b = solver->N solver->N solver->N solver->N
+	; a * b
 	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]);
 	; END_FOR
 
-	.segundoCicloOut:
-	.segundoCicloIn:
+	
+	; Siempre agarro 4 conjuntos de 4 pixels, arriba actual abajo, siguiente
+	; comienzo de fila
+	; x x x x - - - - - - - - 
+	; a a a a x x x x - - - -
+	; x x x x - - - - - - - -
+	; - - - - - - - - - - - -
+	; ciclo
+	; - - - - x x x x - - - - 
+	; x x x x a a a a x x x x
+	; - - - - x x x x - - - -
+	; - - - - - - - - - - - -
+	; fin de fila
+	; - - - - - - - - x x x x
+	; - - - - x x x x a a a a
+	; - - - - - - - - x x x x
+	; - - - - - - - - - - - -
+	.segundoCiclo:
+	.principioFilaSC:
+
+	.cicloSC:
 	; COMPLETAR
-	jmp .segundoCicloIn
-	jmp .segundoCicloOut
+	; con fila anterior actual y siguiente sale solo, es directo
+	; pxor xmm0, xmm0
+	; movdqu xmm0, siguiente
+	; movdqu xmm1, anteior
+	; psub xmm0, xmm1 ; tengo la resta de siguiente - anterior para 4 pixels
+	; pongo solver-> N en cada lugar, y multiplico por ceroCinco
+	; multiplico por xmm0 y psub xmmActual, xmm0
+	; solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
+
+	; columna actual y siguiente
+	; actual, arranco en posicion 2, hago las cuentas, hasta la ultima q utiliza a la siguiente.
+	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]) 
+	; paso siguiente a actual, y agarro la siguiente, y arranco desde el principio
+	; asi sucesivamente
+	; cuando llego a la ultima columna, voy hasta el 3ero
+
+	.finFilaSC:
+
+	jmp .segundoCiclo
+
 
 
 	; solver_set_bnd ( solver, 1, solver->u );
