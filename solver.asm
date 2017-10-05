@@ -149,16 +149,21 @@ solver_set_bnd:
 solver_project:
 
 	push rbp				;alineada
-	mov rsp, rbp
-	push rbx				;desalineada
-	push r13				;alineada
-	push r14				;desalineada
-	push r15				;alineada
-
+	mov rsp, rbp	
+	push r13				;desalineada
+	push r14				;alineada
+	push r15				;desalineada	
+	sub rsp, 24				;alineada
 
 	mov r15, rdi ; solver
 	mov r14, rsi ; p
-	mov r13, rdx ; div
+	mov r13, rdx ; div	
+	mov r12, [r15 + offset_fluid_solver_N] ; N	
+	sar r12, 4 ; divido N por 4 columnas
+	mov [rsp + 8], r12 ; cantidad de filas
+	mov [rsp + 16], r12 ; cantidad de columnas
+	mov r12, 1 ; contador de filas
+	mov r11, 1 ; contador de columnas
 
 	pxor xmm3, xmm3
 	movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
@@ -171,45 +176,64 @@ solver_project:
 	pslldq xmm5, 4
 	paddusb xmm4, xmm5
 	pslldq xmm5, 4
-	paddusb xmm4, xmm5 ;xmm3 = | N | N | N | N |
+	paddusb xmm4, xmm5 ;xmm4 = | N | N | N | N |
 
 	pxor xmm5, xmm5
 	pxor xmm6, xmm6
 	pxor xmm7, xmm7
 	pxor xmm8, xmm8
+
+
+	mov r10, [rsp + 8]
+	.primerCiclo:
 	; FOR_EACH_CELL
 	; 	div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
 	; 	p[IX(i,j)] = 0;
 	; END_FOR
+	.colCicloP:
+	movdqu xmm0, [r15] ; celdas actuales
+	sub r15, r10
+	movdqu xmm1, [r15] ; celdas fila anterior
+	add r15, r10
+	add r15, r10
+	movdqu xmm2, [r15] ; celdas fila siguiente
 
-	; Siempre agarro 4 conjuntos de 4 pixels, arriba actual abajo, siguiente
+	cmp r11, 1
+	jne .compararFin
 	; comienzo de fila
 	; b b b b - - - - - - - - 
 	; a a a a d d d d - - - -
 	; c c c c - - - - - - - -
 	; - - - - - - - - - - - -
 	; c - b
+	
+	.compararFin:
+	cmp r11, [rsp + 16]
+	je .finFilaPC
 	; ciclo
 	; - - - - x x x x - - - - 
 	; x x x x a a a a x x x x
 	; - - - - x x x x - - - -
 	; - - - - - - - - - - - -
+	.finFilaPC:
 	; fin de fila
 	; - - - - - - - - x x x x
 	; - - - - x x x x a a a a
 	; - - - - - - - - x x x x
 	; - - - - - - - - - - - -
-	; La unica diferencia es que aca opero con todo junto
-
-	.primerCiclo:
-	.principioFilaPC:
-
-	.cicloPC:
-
-	.finFilaPC:
-
+	.finColCicloP:
+	inc [rsp + 16]
+	cmp r11, [rsp + 16]
+	jg .finPrimerCiclo		
+	jmp .colCicloP
+	.finPrimerCiclo:
+	inc [rsp + 8]
+	cmp r12, [rsp + 8]
+	jg .siguiente
+	mov [rsp + 16], 0
 	jmp .primerCiclo
 
+	.siguiente:
 
 	; 	solver_set_bnd ( solver, 0, div ); 
 	mov rdi, r15
@@ -228,57 +252,55 @@ solver_project:
 	mov r8, 1
 	mov r9, 4
 	call solver_lin_solve
-
-	; FOR_EACH_CELL
 	
+	
+	.segundoCiclo:
+	; FOR_EACH_CELL	
 	; 	solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
 	; mascaras:
-	; a = 0.5 0.5 0.5 0.5
-	; b = solver->N solver->N solver->N solver->N
-	; a * b
 	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]);
-	; END_FOR
+	; END_FOR	
+	.colCicloS:
+	movdqu xmm0, [r15] ; celdas actuales
+	sub r15, r10
+	movdqu xmm1, [r15] ; celdas fila anterior
+	add r15, r10
+	add r15, r10
+	movdqu xmm2, [r15] ; celdas fila siguiente
 
-	
-	; Siempre agarro 4 conjuntos de 4 pixels, arriba actual abajo, siguiente
+	cmp r11, 1
+	jne .compararFinS
 	; comienzo de fila
-	; x x x x - - - - - - - - 
-	; a a a a x x x x - - - -
-	; x x x x - - - - - - - -
+	; b b b b - - - - - - - - 
+	; a a a a d d d d - - - -
+	; c c c c - - - - - - - -
 	; - - - - - - - - - - - -
+	; c - b
+	
+	.compararFinS:
+	cmp r11, [rsp + 16]
+	je .finFilaSC
 	; ciclo
 	; - - - - x x x x - - - - 
 	; x x x x a a a a x x x x
 	; - - - - x x x x - - - -
 	; - - - - - - - - - - - -
+	.finFilaSC:
 	; fin de fila
 	; - - - - - - - - x x x x
 	; - - - - x x x x a a a a
 	; - - - - - - - - x x x x
 	; - - - - - - - - - - - -
-	.segundoCiclo:
-	.principioFilaSC:
-
-	.cicloSC:
-	; COMPLETAR
-	; con fila anterior actual y siguiente sale solo, es directo
-	; pxor xmm0, xmm0
-	; movdqu xmm0, siguiente
-	; movdqu xmm1, anteior
-	; psub xmm0, xmm1 ; tengo la resta de siguiente - anterior para 4 pixels
-	; pongo solver-> N en cada lugar, y multiplico por ceroCinco
-	; multiplico por xmm0 y psub xmmActual, xmm0
-	; solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
-
-	; columna actual y siguiente
-	; actual, arranco en posicion 2, hago las cuentas, hasta la ultima q utiliza a la siguiente.
-	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]) 
-	; paso siguiente a actual, y agarro la siguiente, y arranco desde el principio
-	; asi sucesivamente
-	; cuando llego a la ultima columna, voy hasta el 3ero
-
-	.finFilaSC:
-
+	.finColCicloS:
+	inc [rsp + 16]
+	cmp r11, [rsp + 16]
+	jg .finsegundoCiclo		
+	jmp .colCicloS
+	.finsegundoCiclo:
+	inc [rsp + 8]
+	cmp r12, [rsp + 8]
+	jg .siguiente
+	mov [rsp + 16], 0
 	jmp .segundoCiclo
 
 
@@ -294,9 +316,11 @@ solver_project:
 	mov rdx, [rdi + offset_fluid_solver_v]
 	call solver_set_bnd 
 
+	add rsp, 24
 	pop r15
 	pop r14
 	pop r13
+	pop r12
 	pop rbx
 	pop rbp
 	ret
