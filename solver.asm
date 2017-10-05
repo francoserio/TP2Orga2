@@ -24,11 +24,6 @@ section .text
 %define offset_fluid_solver_dens 48
 %define offset_fluid_solver_dens_prev 56
 
-section .data
-ceroCinco: dd 0.5, 0.5, 0.5, 0.5
-negativosSeg: dd 1.0, 1.0, -1.0, -1.0
-negativosPrim: dd -1.0, -1.0, 1.0, 1.0
-
 global solver_lin_solve
 solver_lin_solve:
 	;stack frame
