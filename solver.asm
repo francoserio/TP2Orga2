@@ -16,6 +16,155 @@ negativosPrim: dd -1.0, -1.0, 1.0, 1.0
 
 ;global solver_lin_solve
 solver_lin_solve:
+	;stack frame
+	push rbp
+    	mov rbp, rsp
+    	push rbx
+    	push r12
+    	push r13
+    	push r14
+	push r15
+	
+	mov rbx, rdi ;rbx=rdi=solver
+	mov r12, rdx ;r12=rdx=x
+    	mov r13, rcx ;r13=rcx=x0
+    	extractps r14, xmm0, 0 ;r14=xmm0=a
+	extractps r15, xmm1, 0 ;r15=xmm1=c
+	mov [rsp], rsi ;b esta en la pila
+	sub rsp, 8
+	mov dword [rsp], 0 ;k esta en la pila
+	sub rsp, 8
+	
+	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
+	movups xmm7, xmm0 ;xmm7=0|0|0|a
+	pslldq xmm7, 4 ;xmm7=0|0|a|0 
+	addps xmm0, xmm7 ;xmm0=0|0|a|a
+	movups xmm7, xmm0 ;xmm7=0|0|a|a
+	pslldq xmm7, 8 ;xmm7=a|a|0|0
+	addps xmm0, xmm7 ;xmm0=a|a|a|a
+	
+	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
+	movups xmm7, xmm1 ;xmm7=0|0|0|c
+	pslldq xmm7, 4 ;xmm7=0|0|c|0
+	addps xmm1, xmm7 ;xmm1=0|0|c|c
+	movups xmm7, xmm1 ;xmm7=0|0|c|c
+	pslldq xmm7, 8 ;xmm7=c|c|0|0
+	addps xmm1, xmm7 ;xmm1=c|c|c|c
+	
+loop:
+	cmp dword [rsp+8], 20 ;for ( k=0 ; k<20 ; k++ )
+	jge fin 
+	
+	mov r9, 1 ;i=1
+loop1:cmp r9, [rbx+offset_fluid_solver_N] ;for ( i=1 ; i<solver->N ; i++ )
+	jg fin1
+	
+	movups xmm4, [r12 + r9*4] ;xmm4= x[IX(i+3,0)] | x[IX(i+2,0)] | x[IX(i+1,0)] |x[IX(i,0)]
+		
+	mov r10, 1 ;j=1
+loop2:
+	cmp r10, [rbx+offset_fluid_solver_N] ;for ( j=1 ; j<solver->N ; j++ )
+	jg fin2
+	
+	;traigo x(i,j+1)
+	mov r8, r12 ;r8=comienzo de la matriz x
+	xor rax, rax
+	mov rax, [rbx+offset_fluid_solver_N] ;rax=solver->N
+	add rax, 2 ;rax=(solver->N)+2
+	mov r11, r10 ;r11=j
+	inc r11 ;r11=j+1
+	mul r11 ;rax=( (solver->N)+2 ) * (j+1)
+	add rax, r9 ;rax=( (solver->N)+2 ) * (j+1) + i
+	mul rax, 4 ;rax=(( (solver->N)+2 ) * (j+1) + i )*4
+	add r8, rax ;r8=comienzo de la matriz x + lo necesario para ir a  la pos (i,j+1)
+	movups xmm2, [r8] ;xmm6=x[IX(i+3,j+1)] | x[IX(i+2,j+1)] | x[IX(i+1,j+1)] | x[IX(i,j+1)]
+	
+	;traigo x(i+1,j)
+	mov r8, r12 ;r8=comienzo de la matriz x
+	xor rax, rax
+	mov rax, [rbx+offset_fluid_solver_N] ;rax=solver->N
+	add rax, 2 ;rax=(solver->N)+2
+	mul r10 ;rax=( (solver->N)+2 ) * j
+	mov r11, r9 ;r11=i
+	inc r11 ;r9=i+1
+	add rax, r11 ;rax=( (solver->N)+2 ) * j + (i+1)
+	mul rax, 4 ;rax=(( (solver->N)+2 ) * j + (i+1) )*4
+	add r8, rax ;r8=comienzo de la matriz x + lo necesario para ir a  la pos (i+1,j)
+	movups xmm3, [r8] ;xmm6=x[IX(i+4,j)] | x[IX(i+3,j)] | x[IX(i+2,j)] | x[IX(i+1,j)]
+	
+	;traigo x(i-1,j)
+	mov r8, r12 ;r8=comienzo de la matriz x
+	xor rax, rax
+	mov rax, [rbx+offset_fluid_solver_N] ;rax=solver->N
+	add rax, 2 ;rax=(solver->N)+2
+	mul r10 ;rax=( (solver->N)+2 ) * j
+	mov r11, r9 ;r11=i
+	dec r11 ;r9=i-1
+	add rax, r11 ;rax=( (solver->N)+2 ) * j + (i-1)
+	mul rax, 4 ;rax=(( (solver->N)+2 ) * j + (i-1) )*4
+	add r8, rax ;r8=comienzo de la matriz x + lo necesario para ir a  la pos (i-1,j)
+	movups xmm5, [r8] ;xmm6=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | x[IX(i-1,j)]
+	
+	;traigo x0(i,j)
+	mov r8, r13 ;r8=comienzo de la matriz x0
+	xor rax, rax
+	mov rax, [rbx+offset_fluid_solver_N] ;rax=solver->N
+	add rax, 2 ;rax=(solver->N)+2
+	mul r10 ;rax=( (solver->N)+2 ) * j
+	add rax, r9 ;rax=( (solver->N)+2 ) * j + i
+	mul rax, 4 ;rax=(( (solver->N)+2 ) * j + i )*4
+	add r8, rax ;r8=comienzo de la matriz x0 + lo necesario para ir a  la pos (i,j)
+	movups xmm6, [r8] ;xmm6=x0[IX(i+3,j)] | x0[IX(i+2,j)] | x0[IX(i+1,j)] | x0[IX(i,j)] 
+	
+	inc r10 ;j++
+	jmp loop2
+fin2:
+	
+	add r9, 4 ;i+=4
+	jmp loop1
+fin1:
+	
+	mov rdi, rbx ;rdi=solver
+	mov rsi, [rsp+16] ;rsi=b
+	mov rdx, r12 ;rdx=x
+	call solver_set_bnd ;solver_set_bnd ( solver, b, x )
+	
+	;reocordar que r14=a y r15=c donde el float esta en la parte baja del registro
+	pxor xmm0, xmm0
+	movq xmm0, r14 ;xmm0=0|0|0|a el valor de r14 va a la parte baja de xmm0
+	pxor xmm1, xmm1
+	movq xmm1, r15 ;xmm1=0|0|0|c el valor de r15 va a la parte baja de xmm1
+	
+	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
+	movups xmm7, xmm0 ;xmm7=0|0|0|a
+	pslldq xmm7, 4 ;xmm7=0|0|a|0 
+	addps xmm0, xmm7 ;xmm0=0|0|a|a
+	movups xmm7, xmm0 ;xmm7=0|0|a|a
+	pslldq xmm7, 8 ;xmm7=a|a|0|0
+	addps xmm0, xmm7 ;xmm0=a|a|a|a
+	
+	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
+	movups xmm7, xmm1 ;xmm7=0|0|0|c
+	pslldq xmm7, 4 ;xmm7=0|0|c|0
+	addps xmm1, xmm7 ;xmm1=0|0|c|c
+	movups xmm7, xmm1 ;xmm7=0|0|c|c
+	pslldq xmm7, 8 ;xmm7=c|c|0|0
+	addps xmm1, xmm7 ;xmm1=c|c|c|c
+		
+	inc dword [rsp+8] ;k++
+	jmp loop
+fin:
+	
+	;restablecer stack
+	add rsp, 8 ;desapilo k
+	add rsp, 8 ;desapilo b
+	pop r15
+    	pop r14
+    	pop r13
+    	pop r12
+	pop rbx
+	pop rbp
+	ret
 	
 
 ;global solver_set_bnd 		;solver en rdi, b en esi, x en rdx
