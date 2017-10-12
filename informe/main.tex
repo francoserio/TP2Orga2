@@ -1,0 +1,104 @@
+\documentclass[a4paper,10pt, nofootinbib]{article}
+\usepackage[width=15.5cm, left=3cm, top=2.5cm, right=1cm, left=2cm, height= 24.5cm]{geometry}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{xspace}
+\usepackage{xargs}
+\usepackage{ifthen}
+\usepackage{caratula}
+\usepackage{fancyhdr}
+\usepackage[bottom]{footmisc}
+\usepackage{modulos}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{float}
+\usepackage{amsmath}
+
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+
+\newcommand{\moduloNombre}[1]{\textbf{#1}}
+
+
+\let\NombreFuncion=\textsc
+\let\TipoVariable=\texttt
+\let\ModificadorArgumento=\textbf
+\newcommand{\res}{$res$\xspace}
+\newcommand{\tab}{\hspace*{7mm}}
+
+\newcommand{\Ogr}{\mathcal{O}}
+
+
+\newcommand{\footnoteMio}[2]{\textsuperscript{#1} \lfoot{\footnotesize \parbox{16cm}{\textsuperscript{#1}#2}}}
+
+\newcommandx{\TipoFuncion}[3]{%
+  \NombreFuncion{#1}(#2) \ifx#3\empty\else $\to$ \res\,: \TipoVariable{#3}\fi%
+}
+\newcommand{\In}[2]{\ModificadorArgumento{in} \ensuremath{#1}\,: \TipoVariable{#2}\xspace}
+\newcommand{\Out}[2]{\ModificadorArgumento{out} \ensuremath{#1}\,: \TipoVariable{#2}\xspace}
+\newcommand{\Inout}[2]{\ModificadorArgumento{in/out} \ensuremath{#1}\,: \TipoVariable{#2}\xspace}
+\newcommand{\Aplicar}[2]{\NombreFuncion{#1}(#2)}
+
+\newcommand{\Titulo}[1]{
+  \vspace*{1ex}\par\noindent\textbf{\large #1}\par
+}
+\newcommand{\DRef}{\ensuremath{\rightarrow}}
+
+%%Información para la carátula
+\materia{Organizacion del Computador II}
+
+\titulo{\LARGE Trabajo Práctico N2}
+
+\grupo{Grupo rafrani}
+\integrante{Ruiz Ramirez, Emanuel}{343/15}{ema.capo2009@hotmail.com}
+\integrante{Serio, Franco}{215/15}{francoagustinserio@gmail.com }
+\integrante{Soberon, Nicolás}{641/10}{nico.soberon@gmail.com}
+
+\def\cuatrimestre{1}
+
+%%fancyhdr
+\pagestyle{fancy} 
+\thispagestyle{fancy}
+\addtolength{\headheight}{1pt}
+\lhead{Algoritmos y Estructuras de Datos II: TP2}
+\rhead{$2^{\mathrm{do}}$ cuatrimestre de 2016}
+\cfoot{\thepage\ / 30}
+\renewcommand{\footrulewidth}{0.4pt}
+
+
+
+\setlength{\parskip}{0.8em}
+
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\clearpage
+
+\thispagestyle{empty}
+
+
+\clearpage
+
+\section{Introducci\'on}
+\input{introduccion.tex}
+\clearpage
+
+\section{Desarrollo}
+\input{desarrollo.tex}
+\clearpage
+
+\section{Resultados}
+\input{resultados.tex}
+\clearpage
+
+\section{Conclusi\'on}
+\input{conclusion.tex}
+\clearpage
+
+
+\clearpage
+
+\end{document}
