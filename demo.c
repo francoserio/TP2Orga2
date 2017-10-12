@@ -267,7 +267,7 @@ void *read_mask(void *void_ptr){
 		printf("sendto Status = %d\n", status);
 		uint32_t size = status / sizeof(uint32_t);
 		if(size > app->client_ID){
-			app->mask_value = buffer[app->client_ID];	
+			app->mask_value = buffer[app->client_ID];
 		}
 		fflush(stdout);
 		usleep(10000);
@@ -333,8 +333,8 @@ int main ( int argc, char ** argv ){
 		fprintf ( stderr, "\t y q finaliza la ejeucion)\n" );
 		fprintf ( stderr, "2 para correr los tests\n" );
 		fprintf ( stderr, "3 ID PORT para correr en modo cliente-servidor\n" );
-		fprintf ( stderr, "\t ID es el numero de maquina\n" );		
-		fprintf ( stderr, "\t PORT es el puerto por el que recibe los mensajes\n" );		
+		fprintf ( stderr, "\t ID es el numero de maquina\n" );
+		fprintf ( stderr, "\t PORT es el puerto por el que recibe los mensajes\n" );
 		free(app);
 		exit ( 1 );
 	}
@@ -356,17 +356,16 @@ int main ( int argc, char ** argv ){
 			}
 		}
 		glutInit ( &argc, argv );
-		open_glut_window ();
+		open_glut_window();
 
-		glutMainLoop ();
+		glutMainLoop();
 		app->should_exit = true;
 		if(app->app_mode == APP_CLIENT){
 			if(pthread_join(read_thread, NULL)) {
 				fprintf(stderr, "Error joining thread\n");
 			}
-		}	
+		}
 		solver_destroy(solver);
-
 	}else{
 		int sizes[] = {16, 32, 64, 128, 256, 512};
 		char density_file_name[256], density_diff_name[256], density_mine_name[256], velocity_u_file_name[256], velocity_u_diff_name[256], velocity_u_mine_name[256], velocity_v_file_name[256], velocity_v_diff_name[256], velocity_v_mine_name[256];
@@ -386,10 +385,10 @@ int main ( int argc, char ** argv ){
 			solver_set_initial_density(solver);
 			solver_set_initial_velocity(solver);
 			int k = 0;
-			int RUNS = 20; 
+			int RUNS = 20;
 			for(k =0 ; k < RUNS; k++){
 				solver_vel_step ( solver, solver->u_prev, solver->v_prev);
-				solver_dens_step ( solver, solver->dens, solver->dens_prev);		
+				solver_dens_step ( solver, solver->dens, solver->dens_prev);
 			}
 			draw_alpha(size, solver->dens, density_mine_name);
 			draw_diff(size, solver->dens, density_file_name, density_diff_name);
@@ -400,7 +399,7 @@ int main ( int argc, char ** argv ){
 			solver_destroy(solver);
 		}
 	}
-	
+
 	free(app);
 
 	exit ( 0 );
