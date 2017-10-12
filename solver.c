@@ -1,5 +1,7 @@
 #include "solver.h"
 
+extern void solver_lin_solve ( fluid_solver* , uint32_t , float *, float * , float, float );
+
 fluid_solver* solver_create (uint32_t N, float dt, float diff, float visc){
 	fluid_solver* solver = (fluid_solver*)malloc(sizeof(fluid_solver));
 	solver->N			= N;
@@ -110,7 +112,7 @@ void solver_lin_solve ( fluid_solver* solver, uint32_t b, float * x, float * x0,
 		END_FOR
 		solver_set_bnd ( solver, b, x );
 	}
-}
+}*/
 
 void solver_set_bnd ( fluid_solver* solver, uint32_t b, float * x ){
 	uint32_t i;
@@ -141,4 +143,4 @@ void solver_project ( fluid_solver* solver, float * p, float * div ){
 	END_FOR
 	solver_set_bnd ( solver, 1, solver->u ); solver_set_bnd ( solver, 2, solver->v );
 }
-*/
+
