@@ -1,0 +1,15 @@
+Este Trabajo Pr\'actico se basa en utilizar el modelo de procesamiento SIMD (Single Instruction Multiple Data) por medio del uso de instrucciones SSE (Streaming SIMD Extensions), para poder desarrollar distintos metodos para 'Navier Stokes' y asi poder evaluar el rendimiento de las mismas.
+Algunas de las ventajas de usar las instrucciones SSE:
+Ejecutar de manera paralela (simultaneamente) la misma instrucci\'on sobre distintos datos.
+Utilizar los registros XMM, los cuales nos sirven para operar con datos empaquetados y de punto flotante.
+Reducir los accesos a memoria, ya que podemos guardar mas datos en registros y con una sola instrucci\'on mover 128 bits a memoria.
+
+Se implementaron los siguientes metodos en Assembler:
+
+\begin{itemize}
+\item \textbf{solver\_lin\_solve} : Se encarga de calcular la difusion del fluido a modelar.
+\item \textbf{solver\_set\_bnd}: Calcula los valores para los casos borde de las matrices.
+\item \textbf{solver\_project}: Proyecta los nuevos valores en la matriz de velocidad
+\end{itemize}
+
+

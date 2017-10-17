@@ -1,0 +1,73 @@
+Vamos a trabajar con matrices. Estas matrices de velocidad son la representaci\'on discreta del campo vectorial asociado simplificado al tomar un vector representante de la grilla obtenida al dividir el espacio en celdas de tama\~o fijo. En estas matrices agregamos una columna y una fila a cada lado de nuestra grilla para simplificar el trabajo sobre los bordes.
+Al recorrer la matriz, vamos a poder acceder a 4 celdas a la vez. De esta manera podemos aprovechar el modelo SIMD, para poder operar con estos datos juntos, y asi realizar menos iteraciones.
+
+\subsection{solver\_lin\_solve}
+La manera en la que opera una iteracion del ciclo mas superficial de solver$\_$lin$\_$solve es:
+\begin{itemize}
+\item Primero guardo en edx N+2, es decir la cantidad de elementos de una fila.
+\item En el for i, se va a realizar las modificaciones para cuatro columnas contiguas empezando desde l primera y avanzando de a cuatro columnas.
+\item Al comienzo de for i, rax quiero que apunte a la posicion (i,1) de la matriz x y r8 apunta a la misma posicion pero en la matriz x0. Tambien me traigo a xmm4 el bloque de 4 floats contiguos que comienza en (i,0).
+\item En el for j, se va a realizar las modificaciones para un bloque de cuatro floats contiguos que comienzan en la posicion (i,j) y se va a ir avanzando de a una fila
+\item Dentro del for j, tanto rax y r8 van a apuntar a la pos (i,j) de sus respectivas matrices. Y hago los siguientes accesos a memoria, en xmm2 traigo los cuatro floats contiguos que comienzan en (i,j+1) de x, en xmm3 traigo a los que comienzan en (i+1,j) de x, en xmm5 traigo a los que comienzan en (i-1,j) de x y en xmm6 traigo a los que comienzan en (i,j) de x0. En xmm4 estaria el bloque que comienza en (i,j-1) de x  que lo tengo  de la iteracion anterior, si es que no estoy en la primera iteracion, pero en caso de estarlo traigo a los cuatro floats de (i,0) de x.
+\item Usando las operaciones de SIMD correspondientes hago que a cada float de xmm0 cuyo valor es 'a' multiplique a cada float de xmm2, xmm3 y xmm4. Tambien  cada float de xmm1 cuyo valor es 'c' divide a cada float de xmm2, xmm3, xmm4 y xmm6.
+\item Para modificar el contenido del bloque de cuatro floats que comienzan en (i,j) de x, a xmm6 le sumo xmm2 y xmm3, ya que los floats de xmm2 y xmm3 son los valores de matriz x aun no modificados. Tambien le sumo xmm4, ya que los floats de xmm4 son los valores de la matriz x ya modificados o de la fila 0 en caso de ser la primera iteracion. Por ultimo, le sumo a cada float de xmm6 su respectivo valor de la izquierda ya modificado. Para hacer esto, armo el valor de la izquierda, lo multiplico por 'a' y divido por 'c' para despues sumarlo en la posicion correspondiente. Entonces lo obtenido en xmm6 lo guardo en lo apuntado por rax y en xmm4 para usarlo en la siguiente iteracion. 
+\item Antes de terminar una iteracion de j, actualizo rax y r8 moviendolos N+2 floats. La idea es seguir en la siguiente fila. 
+\item Antes de terminar una iteracion de i, actualizo rcx para que valga N+2, asi puedo armar rax en la siguiente iteracion. La idea es seguir con las siguientes 4 columnas.
+\item Hago un llamado a solver$\_$set$\_$bnd, pasandole los parametros apropiados. Despues del llamado reconstruyo xmm0 para que tenga cuatro float 'a' y xmm1 posea cuatros float 'c'.
+\item Si bien no corresponde a una iteracion, aclaro que uso los 5 registros que preservan su valor segun la convencion guardando 5 de los 6 parametros. El parametro faltante b y la variable local k las apilo en el stack(apilo primero b y despues k).
+\end{itemize}
+
+\subsection{solver\_set\_bnd}
+Solver$\_$set$\_$bnd se implementó de la siguiente manera:
+\begin{itemize}
+\item Se guarda antes del ciclo los valores que hay en rdx y en rdi que son el puntero a x y el puntero a solver respectivamente. De este ultimo se saca el N, que es el tamaño de la matriz.
+\item En r9 se guarda N+2. Se divide el N por 4 ya que es la cantidad de veces que va a iterar el ciclo.
+\item se guarda el b en r13 y se testea que es (0, 1 o 2).
+\item Si b es 1 o 0 se va a la parte llamada ciclo1 y si es 2 al ciclo2. El ciclo1 y ciclo2 son los ciclos que tratan la primera y ultima fila de los bordes, tanto si es 2, como 1 o 0.
+\item Ciclo1 levanta 4 floats de memoria de la fila 1, y los pone en memoria en la fila 0. Luego va a la anteultima fila, levanta 4 y avanza a la ultima fila y los pone en memoria. Luego reestablezco el puntero y avanzo 16 bytes (4 floats) que son los que hice el la fila 0 y en la fila N+1. Idem para ciclo2 con la diferencia que antes de meterlos en memoria multiplico por xmm4 que es una mascara de -1.0, para pasar todo a negativos.
+\item Luego se pasa a hacer la primera columna y por ultimo la ultima columna. Todo esto, como no se trabaja en un espacio continuo de memoria, no tiene ventajas utilizar SIMD por lo que aparte de utilizar xmm0 se utilizan los registros convencionales.
+\item Si b es 0 o 2 se corre el finCiclo2 y si es 1 finCiclo1.
+\item Los ciclos de primera columna son iguales con excepción del caso de b = 1 donde con la máscara xmm4 se hace negativo el resultado antes de insertarlo en memoria.
+\item Idem para ultimaColumna de cada ciclo. Tanto primeraColumnaciclo1 como primeraColumnaCiclo2 y ultimaColumnaCiclo1 y ultimaColumnaCiclo2 usan r15 como puntero y r13 como contador. Todos estos ciclos van de 1 hasta que r13 < \ N + 1.
+\item Por último ambos ciclos van a la etiqueta .fin, donde se procesa los lugares de los vértices de la matriz.
+\item Los primeros sumandos se guardan en xmm0 y los segundos en xmm1.
+\item La posicion de cada vértice en cada xmm es en el orden que están en el código de C. Por ejemplo, en los primeros 32 bits de xmm0 esta x[IX(1,0)] y de xmm1 x[IX(0,1)] para poder hacer el x[IX(0,0)].
+
+\item Se suman xmm0 y xmm1
+
+\item Luego se multiplica xmm0 por xmm11 que es una máscara con floats de 0.5
+
+\item Finalmente insertamos xmm0 en memoria.
+
+\item Reorganizamos el stack y retornamos.
+
+\end{itemize}
+
+\subsection{solver\_project}
+En cuanto al desarrollo de solver\_project, tuvimos q aplicar una formula a cada celda de la matriz, luego llamar solver\_set\_bnd y solver\_lin\_solve, y luego volver a procesar las celdas de la matriz.
+El metodo funciona de la siguiente manera:
+
+\begin{itemize}
+\item Primero, se van a hacer un total de (ancho * alto / 4) de iteraciones, dividimos a N por 4 porque vamos a agarrar de a 4 posiciones de la matriz.
+\item Vamos a diferenciar 3 casos, uno cuando estamos a principio de una fila, otro en el medio de la fila y otro al final de una fila.
+\item Estos casos nos van a servir a la hora de ver las posiciones $j+1$ y $j-1$.
+\item Comenzamos por traer 4 celdas de source al comienzo del ciclo.
+\item Si estamos al comienzo de la fila con el caso de inicio de fila, nos vamos a traer las 4 posiciones que estoy mirando, y las 4 siguientes.
+\item La primera posicion no nos va a interesar, porque luego la vamos a pisar, cuando llamemos al metodo que setea los bordes de la matriz.
+\item Utilizando SHIFTS vamos a acomodar los dos registros XMM de manera tal que podamos realizar la resta correspondiente, y obtener el valor de $j+1$ - $j-1$ para las cuatro posiciones que estamos mirando.
+\item Luego si estamos a mediados de la fila, vamos a tener las 4 celdas que estoy mirando, las 4 siguientes y las 4 anteriores.
+\item (Para poder aprovechar que las anteriores ya las vamos a tener de la iteracion anterior, las vamos almacenando en un XMM, donde guardamos las 4 celdas anteriores, asi no las tenemos que pedir a memoria nuevamente)
+\item Con estos 3 sets de 4 celdas, vamos a realizar SHIFTS nuevamente, para poder realizar la operacion entre las posiciones $j+1$ y $j-1$, para las cuatro celdas a la vez.
+\item Si entramos al caso que estamos al final de la fila, es analogo al caso de principio de fila, con la diferencia que aca vamos a traernos las 4 celdas que estamos mirando y las 4 anteriores. Operamos de la misma forma que al comienzo de la fila.
+\item Luego en cualquiera de los 3 casos, a la hora de operar con las posiciones $i+1$ y $i-1$, vamos a traernos en cada iteracion las 4 celdas actuales, las 4 celdas que se encuentran en la fila anterior, arriba de las actuales y las 4 celdas de la fila siguiente, que se encuentran debajo de las actuales.
+\item teniendo $anteriores$ y $siguientes$, podemos realizar una resta entre esos dos registros, para poder computar para las 4 celdas actuales, la operacion p[IX(i+1,j)]-p[IX(i-1,j) que queriamos realizar.
+\item Por ultimo, dependiendo del caso, vamos a utilizar una mascara que contiene valores $0.5$ y el valor $N$ para poder completar las operaciones con los valores que ya obtuvimos para las 4 celdas que estamos mirando.
+\item Una vez que terminamos con el primer ciclo, vamos a llamar a $solver\_set\_bnd$ y a $solver\_lin\_solve$.
+\item Luego vamos a construir el segundo ciclo, de la misma manera que construimos el primero, con la unica diferencia que vamos a realizar las operaciones correspondientes con las celdas que estamos mirando.
+\item Por ultimo llamamos al metodo $solver\_set\_bnd$.
+
+\end{itemize}
+
+De esta manera podemos aplicar el modelo SIMD a nuestro metodo. Aprovechando poder trabajar con multiples datos a la vez, nos vamos a ahorrar operaciones, lo que implica un menor tiempo de computo, y una performance mas alta de nuestro algoritmo.
+
+ 

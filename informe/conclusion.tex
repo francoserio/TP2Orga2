@@ -1,0 +1,23 @@
+\graphicspath{{./img/}}
+
+\subsection{C vs ASM}
+
+{\scshape\Large solver$\_$set$\_$bnd\par}
+
+Como se puede apreciar en las figuras de la sección anterior, ASM tiene clocks mucho menores a las funciones en C en todos los tamaños si bien en los mas chicos (por ejemplo 16) las performances entre C y ASM son bastante equivalentes, como lo demuestra el gráfico de abajo. A su vez también vemos que la matriz U tarda en procesar mas ciclos de clock que la matriz V.
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{ClocksCYASM.png}
+  	\caption{ASM VS C solver$\_$set$\_$bnd}
+  	\label{fig:ASMU}
+\end{figure}
+
+A su vez, si en vez de 750 repeticiones se hicieran menos, los datos que se obtienen cada vez son mas proclives a errores. Concluimos que por la ley de los grandes números cuando tenemos una muestra menor se pueden producir varios errores en las experimentaciones como lo demuestra el siguiente gráfico con 200 iteraciones. Se pueden comparar fácilmente con los datos obtenidos y postulados en la sección Resultados.
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{ClocksCYASMMAL.png}
+  	\caption{ASM VS C solver$\_$set$\_$bnd con 200 iteraciones}
+  	\label{fig:ASMU}
+\end{figure}
