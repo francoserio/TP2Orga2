@@ -2,6 +2,7 @@ extern free
 extern malloc
 ; extern solver_set_bnd_c
 extern solver_set_bnd
+extern solver_lin_solve
 
 section .data
 
@@ -26,225 +27,225 @@ section .text
 %define offset_fluid_solver_dens 48
 %define offset_fluid_solver_dens_prev 56
 
-global solver_lin_solve
-solver_lin_solve:
-	;stack frame
-	push rbp
-    mov rbp, rsp
-    push rbx
-    push r12
-    push r13
-    push r14
-	push r15
+; global solver_lin_solve
+; solver_lin_solve:
+; 	;stack frame
+; 	push rbp
+;     mov rbp, rsp
+;     push rbx
+;     push r12
+;     push r13
+;     push r14
+; 	push r15
 	
 	
 	
-	mov rbx, rdi ;rbx=rdi=solver
-	mov r12, rdx ;r12=rdx=x
-    mov r13, rcx ;r13=rcx=x0
-    extractps r14, xmm0, 0 ;r14=xmm0=a
-	extractps r15, xmm1, 0 ;r15=xmm1=c
-	;mov [rsp], rsi ;b esta en la pila
-	;sub rsp, 8
-	;mov dword [rsp], NULL ;k esta en la pila
-	;sub rsp, 8
-	sub rsp, 8 ;reservo memoria para b
-	mov [rsp+1], esi ;b esta en la pila 
+; 	mov rbx, rdi ;rbx=rdi=solver
+; 	mov r12, rdx ;r12=rdx=x
+;     mov r13, rcx ;r13=rcx=x0
+;     extractps r14, xmm0, 0 ;r14=xmm0=a
+; 	extractps r15, xmm1, 0 ;r15=xmm1=c
+; 	;mov [rsp], rsi ;b esta en la pila
+; 	;sub rsp, 8
+; 	;mov dword [rsp], NULL ;k esta en la pila
+; 	;sub rsp, 8
+; 	sub rsp, 8 ;reservo memoria para b
+; 	mov [rsp+1], esi ;b esta en la pila 
 	
-	sub rsp, 8 ;reservo memoria para k
-	mov dword [rsp+1], 0 ;k esta en la pila
+; 	sub rsp, 8 ;reservo memoria para k
+; 	mov dword [rsp+1], 0 ;k esta en la pila
 	
-	sub rsp, 8 ;ahora esta alineada la pila
+; 	sub rsp, 8 ;ahora esta alineada la pila
 	
-	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
-	movups xmm7, xmm0 ;xmm7=0|0|0|a
-	pslldq xmm7, 4 ;xmm7=0|0|a|0 
-	addps xmm0, xmm7 ;xmm0=0|0|a|a
-	movups xmm7, xmm0 ;xmm7=0|0|a|a
-	pslldq xmm7, 8 ;xmm7=a|a|0|0
-	addps xmm0, xmm7 ;xmm0=a|a|a|a
+; 	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
+; 	movups xmm7, xmm0 ;xmm7=0|0|0|a
+; 	pslldq xmm7, 4 ;xmm7=0|0|a|0 
+; 	addps xmm0, xmm7 ;xmm0=0|0|a|a
+; 	movups xmm7, xmm0 ;xmm7=0|0|a|a
+; 	pslldq xmm7, 8 ;xmm7=a|a|0|0
+; 	addps xmm0, xmm7 ;xmm0=a|a|a|a
 	
-	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
-	movups xmm7, xmm1 ;xmm7=0|0|0|c
-	pslldq xmm7, 4 ;xmm7=0|0|c|0
-	addps xmm1, xmm7 ;xmm1=0|0|c|c
-	movups xmm7, xmm1 ;xmm7=0|0|c|c
-	pslldq xmm7, 8 ;xmm7=c|c|0|0
-	addps xmm1, xmm7 ;xmm1=c|c|c|c
+; 	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
+; 	movups xmm7, xmm1 ;xmm7=0|0|0|c
+; 	pslldq xmm7, 4 ;xmm7=0|0|c|0
+; 	addps xmm1, xmm7 ;xmm1=0|0|c|c
+; 	movups xmm7, xmm1 ;xmm7=0|0|c|c
+; 	pslldq xmm7, 8 ;xmm7=c|c|0|0
+; 	addps xmm1, xmm7 ;xmm1=c|c|c|c
 	
-loopIni:
-	cmp dword [rsp+9], 20 ;for ( k=0 ; k<20  ; k++ )
-	jge fin 
+; loopIni:
+; 	cmp dword [rsp+9], 20 ;for ( k=0 ; k<20  ; k++ )
+; 	jge fin 
 	
-	mov ecx, [rbx+offset_fluid_solver_N] ;ecx=solver->N
-	xor r11, r11
-	mov r11d, ecx ;r11=solver->N NO LO MODIFICO
-	add ecx, 2 ;ecx=(solver->N)+2
-	mov edx, ecx ;edx=(solver->N)+2 NO LO MODIFICO
+; 	mov ecx, [rbx+offset_fluid_solver_N] ;ecx=solver->N
+; 	xor r11, r11
+; 	mov r11d, ecx ;r11=solver->N NO LO MODIFICO
+; 	add ecx, 2 ;ecx=(solver->N)+2
+; 	mov edx, ecx ;edx=(solver->N)+2 NO LO MODIFICO
 	
 	
-	xor r9, r9
-	inc r9;i=1
-loop1:
-	cmp r9, r11 ;for ( i=1 ; i<=solver->N ; i++ )
-	jg fin1
+; 	xor r9, r9
+; 	inc r9;i=1
+; loop1:
+; 	cmp r9, r11 ;for ( i=1 ; i<=solver->N ; i++ )
+; 	jg fin1
 	
-	movups xmm4, [r12 + r9*4] ;xmm4= x[IX(i+3,0)] | x[IX(i+2,0)] | x[IX(i+1,0)] |x[IX(i,0)]
+; 	movups xmm4, [r12 + r9*4] ;xmm4= x[IX(i+3,0)] | x[IX(i+2,0)] | x[IX(i+1,0)] |x[IX(i,0)]
  
-	add ecx, r9d ;rcx=( (solver->N)+2 ) + i
-	xor rax, rax
-	lea rax, [r12 + rcx*4] ;estoy en la pos(i,1) para x
-	xor r8, r8
-	lea r8, [r13 + rcx*4] ;estoy en la pos(i,1) para x0	
+; 	add ecx, r9d ;rcx=( (solver->N)+2 ) + i
+; 	xor rax, rax
+; 	lea rax, [r12 + rcx*4] ;estoy en la pos(i,1) para x
+; 	xor r8, r8
+; 	lea r8, [r13 + rcx*4] ;estoy en la pos(i,1) para x0	
 	
 		
-	xor r10, r10
-	inc r10 ;j=1
-loop2:
-	cmp r10, r11;for ( j=1 ; j<=solver->N ; j++ )
-	jg fin2
+; 	xor r10, r10
+; 	inc r10 ;j=1
+; loop2:
+; 	cmp r10, r11;for ( j=1 ; j<=solver->N ; j++ )
+; 	jg fin2
 	
 
-	;traigo x(i,j+1)
-	xor rsi, rsi
-	lea rsi, [rax + rdx*4] ;rsi=IX(i,j+1) 
-	movups xmm2, [rsi] ;xmm2=x[IX(i+3,j+1)] | x[IX(i+2,j+1)] | x[IX(i+1,j+1)] | x[IX(i,j+1)]
+; 	;traigo x(i,j+1)
+; 	xor rsi, rsi
+; 	lea rsi, [rax + rdx*4] ;rsi=IX(i,j+1) 
+; 	movups xmm2, [rsi] ;xmm2=x[IX(i+3,j+1)] | x[IX(i+2,j+1)] | x[IX(i+1,j+1)] | x[IX(i,j+1)]
 	
-	;traigo x(i+1,j)
-	xor rdi, rdi
-	lea rdi, [rax + 4] ;rdi=(i+1,j)
-	movups xmm3, [rdi] ;xmm3=x[IX(i+4,j)] | x[IX(i+3,j)] | x[IX(i+2,j)] | x[IX(i+1,j)]
+; 	;traigo x(i+1,j)
+; 	xor rdi, rdi
+; 	lea rdi, [rax + 4] ;rdi=(i+1,j)
+; 	movups xmm3, [rdi] ;xmm3=x[IX(i+4,j)] | x[IX(i+3,j)] | x[IX(i+2,j)] | x[IX(i+1,j)]
 	
-	;traigo x(i-1,j)
-	xor rdi, rdi
-	lea rdi, [rax - 4] ;rdi=(i-1,j)
-	movups xmm5, [rdi] ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | x[IX(i-1,j)]
+; 	;traigo x(i-1,j)
+; 	xor rdi, rdi
+; 	lea rdi, [rax - 4] ;rdi=(i-1,j)
+; 	movups xmm5, [rdi] ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | x[IX(i-1,j)]
 	
-	;traigo x0(i,j)
-		movups xmm6, [r8] ;xmm6=x0[IX(i+3,j)] | x0[IX(i+2,j)] | x0[IX(i+1,j)] | x0[IX(i,j)] 
+; 	;traigo x0(i,j)
+; 		movups xmm6, [r8] ;xmm6=x0[IX(i+3,j)] | x0[IX(i+2,j)] | x0[IX(i+1,j)] | x0[IX(i,j)] 
 	
 	
-	;multiplico por "a" y divido por "c" a cada float 
-	mulps xmm2, xmm0 ;xmm2=a*x[IX(i+3,j+1)] | a*x[IX(i+2,j+1)] | a*x[IX(i+1,j+1)] | a*x[IX(i,j+1)]
-	divps xmm2, xmm1 ;xmm2=a*x[IX(i+3,j+1)]/c | a*x[IX(i+2,j+1)]/c | a*x[IX(i+1,j+1)]/c | a*x[IX(i,j+1)]/c
+; 	;multiplico por "a" y divido por "c" a cada float 
+; 	mulps xmm2, xmm0 ;xmm2=a*x[IX(i+3,j+1)] | a*x[IX(i+2,j+1)] | a*x[IX(i+1,j+1)] | a*x[IX(i,j+1)]
+; 	divps xmm2, xmm1 ;xmm2=a*x[IX(i+3,j+1)]/c | a*x[IX(i+2,j+1)]/c | a*x[IX(i+1,j+1)]/c | a*x[IX(i,j+1)]/c
 	
-	mulps xmm3, xmm0 ;xmm3=a*x[IX(i+4,j)] | a*x[IX(i+3,j)] | a*x[IX(i+2,j)] | a*x[IX(i+1,j)]
-	divps xmm3, xmm1 ;xmm3=a*x[IX(i+4,j)]/c | a*x[IX(i+3,j)]/c | a*x[IX(i+2,j)]/c | a*x[IX(i+1,j)]/c
+; 	mulps xmm3, xmm0 ;xmm3=a*x[IX(i+4,j)] | a*x[IX(i+3,j)] | a*x[IX(i+2,j)] | a*x[IX(i+1,j)]
+; 	divps xmm3, xmm1 ;xmm3=a*x[IX(i+4,j)]/c | a*x[IX(i+3,j)]/c | a*x[IX(i+2,j)]/c | a*x[IX(i+1,j)]/c
 	
-	mulps xmm4, xmm0 ;xmm4=a*x[IX(i+3,j-1)] | a*x[IX(i+2,j-1)] | a*x[IX(i+1,j-1)] | a*x[IX(i,j-1)]
-	divps xmm4, xmm1 ;xmm4=a*x[IX(i+3,j-1)]/c | a*x[IX(i+2,j-1)]/c | a*x[IX(i+1,j-1)]/c | a*x[IX(i,j-1)]/c
+; 	mulps xmm4, xmm0 ;xmm4=a*x[IX(i+3,j-1)] | a*x[IX(i+2,j-1)] | a*x[IX(i+1,j-1)] | a*x[IX(i,j-1)]
+; 	divps xmm4, xmm1 ;xmm4=a*x[IX(i+3,j-1)]/c | a*x[IX(i+2,j-1)]/c | a*x[IX(i+1,j-1)]/c | a*x[IX(i,j-1)]/c
 	
-	divps xmm6, xmm1 ;xmm6=x0[IX(i+3,j)]/c | x0[IX(i+2,j)]/c | x0[IX(i+1,j)]/C | x0[IX(i,j)]/c 
+; 	divps xmm6, xmm1 ;xmm6=x0[IX(i+3,j)]/c | x0[IX(i+2,j)]/c | x0[IX(i+1,j)]/C | x0[IX(i,j)]/c 
 	
-	;a cada x0 le sumo el de arriba, el de la derecha y el de abajo
-	addps xmm6, xmm2 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c | x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c | x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c | x0[IX(i,j)] + a*x[IX(i,j+1)]/c
-	addps xmm6, xmm3 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c|
-					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c
-	addps xmm6, xmm4 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
-					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c + a*x[IX(i,j-1)]/c
+; 	;a cada x0 le sumo el de arriba, el de la derecha y el de abajo
+; 	addps xmm6, xmm2 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c | x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c | x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c | x0[IX(i,j)] + a*x[IX(i,j+1)]/c
+; 	addps xmm6, xmm3 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c|
+; 					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c
+; 	addps xmm6, xmm4 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
+; 					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c + a*x[IX(i,j-1)]/c
 	
-	;al valor de la posicion (i-1,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i,j)]
-	mulss xmm5, xmm0 ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | a*x[IX(i-1,j)]
-	divss xmm5, xmm1 ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | a*x[IX(i-1,j)]/c
+; 	;al valor de la posicion (i-1,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i,j)]
+; 	mulss xmm5, xmm0 ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | a*x[IX(i-1,j)]
+; 	divss xmm5, xmm1 ;xmm5=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | a*x[IX(i-1,j)]/c
 	
-	addss xmm6, xmm5 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
-					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c + a*x[IX(i,j-1)]/c + a*x[IX(i-1,j)]/c
-					 ;la pos (i,j) ya esta modificada
+; 	addss xmm6, xmm5 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
+; 					 ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x0[IX(i,j)] + a*x[IX(i,j+1)]/c +a*x[IX(i+1,j)]/c + a*x[IX(i,j-1)]/c + a*x[IX(i-1,j)]/c
+; 					 ;la pos (i,j) ya esta modificada
 	
-	;al valor de la posicion (i,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+1,j)]
-	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
-					  ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x[IX(i,j)]
-	pslldq xmm7, 12 ;xmm7=x[IX(i,j)]| 0 | 0 | 0
-	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i,j)]
-	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i,j)]
-	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i,j)]/c
-	pslldq xmm7, 4 ;xmm7=0 | 0 | a*x[IX(i,j)]/c | 0
-	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
-					  ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c + a*x[IX(i,j)]/c| x[IX(i,j)]
-					  ;la pos (i+1,j) ya esta modificada
+; 	;al valor de la posicion (i,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+1,j)]
+; 	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
+; 					  ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c| x[IX(i,j)]
+; 	pslldq xmm7, 12 ;xmm7=x[IX(i,j)]| 0 | 0 | 0
+; 	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i,j)]
+; 	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i,j)]
+; 	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i,j)]/c
+; 	pslldq xmm7, 4 ;xmm7=0 | 0 | a*x[IX(i,j)]/c | 0
+; 	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
+; 					  ;x0[IX(i+1,j)] + a*x[IX(i+1,j+1)]/c + a*x[IX(i+2,j)]/c + a*x[IX(i+1,j-1)]/c + a*x[IX(i,j)]/c| x[IX(i,j)]
+; 					  ;la pos (i+1,j) ya esta modificada
 	
-	;al valor de la posicion (i+1,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+2,j)]
-	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
-					  ;x[IX(i+1,j)] | x[IX(i,j)]
-	pslldq xmm7, 8 ;xmm7=x[IX(i+1,j)]| x[IX(i,j)] | 0 | 0
-	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i+1,j)]
-	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i+1,j)]
-	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i+1,j)]/c
-	pslldq xmm7, 8 ;xmm7=0 | a*x[IX(i+1,j)]/c | 0 | 0
-	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c + a*x[IX(i+1,j)]/c
-					  ;x[IX(i+1,j)] | x[IX(i,j)]
-					  ;la pos (i+2,j) ya esta modificada
+; 	;al valor de la posicion (i+1,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+2,j)]
+; 	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c
+; 					  ;x[IX(i+1,j)] | x[IX(i,j)]
+; 	pslldq xmm7, 8 ;xmm7=x[IX(i+1,j)]| x[IX(i,j)] | 0 | 0
+; 	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i+1,j)]
+; 	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i+1,j)]
+; 	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i+1,j)]/c
+; 	pslldq xmm7, 8 ;xmm7=0 | a*x[IX(i+1,j)]/c | 0 | 0
+; 	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x0[IX(i+2,j)] + a*x[IX(i+2,j+1)]/c + a*x[IX(i+3,j)]/c| + a*x[IX(i+2,j-1)]/c + a*x[IX(i+1,j)]/c
+; 					  ;x[IX(i+1,j)] | x[IX(i,j)]
+; 					  ;la pos (i+2,j) ya esta modificada
 	
-	;al valor de la posicion (i+2,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+3,j)]
-	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
-	pslldq xmm7, 4 ;xmm7=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | 0
-	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i+2,j)]
-	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i+2,j)]
-	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i+2,j)]/c
-	pslldq xmm7, 12 ;xmm7=a*x[IX(i+2,j)]/c | 0 | 0 | 0
-	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c + a*x[IX(i+2,j)]/c| x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
-					  ;la pos (i+3,j) ya esta modificada
+; 	;al valor de la posicion (i+2,j) lo multiplico por a y divido por c, lo obtenido lo sumo para obtener x[IX(i+3,j)]
+; 	movups xmm7, xmm6 ;xmm7=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c| x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
+; 	pslldq xmm7, 4 ;xmm7=x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)] | 0
+; 	psrldq xmm7, 12 ;xmm7=0 | 0 | 0 | x[IX(i+2,j)]
+; 	mulss xmm7, xmm0 ;xmm7=0 | 0 | 0 | a*x[IX(i+2,j)]
+; 	divss xmm7, xmm1 ;xmm7=0 | 0 | 0 | a*x[IX(i+2,j)]/c
+; 	pslldq xmm7, 12 ;xmm7=a*x[IX(i+2,j)]/c | 0 | 0 | 0
+; 	addps xmm6 , xmm7 ;xmm6=x0[IX(i+3,j)] + a*x[IX(i+3,j+1)]/c + a*x[IX(i+4,j)]/c + a*x[IX(i+3,j-1)]/c + a*x[IX(i+2,j)]/c| x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
+; 					  ;la pos (i+3,j) ya esta modificada
 	
-	;busco x(i,j) y ahi guardo los 4 float calculados
-	movups [rax], xmm6 ;guardo en la matriz los valores calculados
-	movups xmm4, xmm6 ;xmm4=x[IX(i+3,j)] | x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
+; 	;busco x(i,j) y ahi guardo los 4 float calculados
+; 	movups [rax], xmm6 ;guardo en la matriz los valores calculados
+; 	movups xmm4, xmm6 ;xmm4=x[IX(i+3,j)] | x[IX(i+2,j)] | x[IX(i+1,j)] | x[IX(i,j)]
 
-	;ahora rax va a ir a la fila de arriba
-	lea rax, [rax + rdx*4] ;me movi una fila arriba y estoy en la pos (i,j+1) para x
-	lea r8, [r8 + rdx*4] ;me movi una fila arriba y estoy en la pos (i,j+1) para x0
+; 	;ahora rax va a ir a la fila de arriba
+; 	lea rax, [rax + rdx*4] ;me movi una fila arriba y estoy en la pos (i,j+1) para x
+; 	lea r8, [r8 + rdx*4] ;me movi una fila arriba y estoy en la pos (i,j+1) para x0
 
-	inc r10 ;j++
-	jmp loop2
-fin2:
+; 	inc r10 ;j++
+; 	jmp loop2
+; fin2:
 	
-	mov ecx, edx;ecx=(solver->N)+2 )
+; 	mov ecx, edx;ecx=(solver->N)+2 )
 	
-	add r9, 4 ;i+=4
-	jmp loop1
-fin1:
+; 	add r9, 4 ;i+=4
+; 	jmp loop1
+; fin1:
 	
-	mov rdi, rbx ;rdi=solver
-	mov esi, [rsp+17] ;rsi=b
-	mov rdx, r12 ;rdx=x
-	call solver_set_bnd ;solver_set_bnd ( solver, b, x )
+; 	mov rdi, rbx ;rdi=solver
+; 	mov esi, [rsp+17] ;rsi=b
+; 	mov rdx, r12 ;rdx=x
+; 	call solver_set_bnd ;solver_set_bnd ( solver, b, x )
 	
-	;reocordar que r14=a y r15=c donde el float esta en la parte baja del registro
-	pxor xmm0, xmm0
-	movq xmm0, r14 ;xmm0=0|0|0|a el valor de r14 va a la parte baja de xmm0
-	pxor xmm1, xmm1
-	movq xmm1, r15 ;xmm1=0|0|0|c el valor de r15 va a la parte baja de xmm1
+; 	;reocordar que r14=a y r15=c donde el float esta en la parte baja del registro
+; 	pxor xmm0, xmm0
+; 	movq xmm0, r14 ;xmm0=0|0|0|a el valor de r14 va a la parte baja de xmm0
+; 	pxor xmm1, xmm1
+; 	movq xmm1, r15 ;xmm1=0|0|0|c el valor de r15 va a la parte baja de xmm1
 	
-	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
-	movups xmm7, xmm0 ;xmm7=0|0|0|a
-	pslldq xmm7, 4 ;xmm7=0|0|a|0 
-	addps xmm0, xmm7 ;xmm0=0|0|a|a
-	movups xmm7, xmm0 ;xmm7=0|0|a|a
-	pslldq xmm7, 8 ;xmm7=a|a|0|0
-	addps xmm0, xmm7 ;xmm0=a|a|a|a
+; 	;xmm0=0|0|0|a y quiero que xmm0=a|a|a|a
+; 	movups xmm7, xmm0 ;xmm7=0|0|0|a
+; 	pslldq xmm7, 4 ;xmm7=0|0|a|0 
+; 	addps xmm0, xmm7 ;xmm0=0|0|a|a
+; 	movups xmm7, xmm0 ;xmm7=0|0|a|a
+; 	pslldq xmm7, 8 ;xmm7=a|a|0|0
+; 	addps xmm0, xmm7 ;xmm0=a|a|a|a
 	
-	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
-	movups xmm7, xmm1 ;xmm7=0|0|0|c
-	pslldq xmm7, 4 ;xmm7=0|0|c|0
-	addps xmm1, xmm7 ;xmm1=0|0|c|c
-	movups xmm7, xmm1 ;xmm7=0|0|c|c
-	pslldq xmm7, 8 ;xmm7=c|c|0|0
-	addps xmm1, xmm7 ;xmm1=c|c|c|c
+; 	;xmm1=0|0|0|c y quiero que xmm1=c|c|c|c
+; 	movups xmm7, xmm1 ;xmm7=0|0|0|c
+; 	pslldq xmm7, 4 ;xmm7=0|0|c|0
+; 	addps xmm1, xmm7 ;xmm1=0|0|c|c
+; 	movups xmm7, xmm1 ;xmm7=0|0|c|c
+; 	pslldq xmm7, 8 ;xmm7=c|c|0|0
+; 	addps xmm1, xmm7 ;xmm1=c|c|c|c
 		
-	inc dword [rsp+9] ;k++
-	jmp loopIni
-fin:
+; 	inc dword [rsp+9] ;k++
+; 	jmp loopIni
+; fin:
 	
-	;restablecer stack
-	add rsp, 8 
-	add rsp, 8 ;desapilo k
-	add rsp, 8 ;desapilo b
-	pop r15
-    pop r14
-    pop r13
-    pop r12
-	pop rbx
-	pop rbp
-	ret
+; 	;restablecer stack
+; 	add rsp, 8 
+; 	add rsp, 8 ;desapilo k
+; 	add rsp, 8 ;desapilo b
+; 	pop r15
+;     pop r14
+;     pop r13
+;     pop r12
+; 	pop rbx
+; 	pop rbp
+; 	ret
 
 
 ;global solver_set_bnd 		;solver en rdi, b en esi, x en rdx
@@ -555,7 +556,7 @@ solver_project:
 	mov r11, 1 ; contador de columnas
 
 	;pxor xmm3, xmm3
-	;movups xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
+	;movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
 
 	pxor xmm4, xmm4
 	movdqu xmm4, [r15 + offset_fluid_solver_N]
