@@ -1,5 +1,7 @@
 #include "solver.h"
 
+extern void solver_lin_solve ( fluid_solver* , uint32_t , float *, float * , float, float );
+
 fluid_solver* solver_create (uint32_t N, float dt, float diff, float visc){
 	fluid_solver* solver = (fluid_solver*)malloc(sizeof(fluid_solver));
 	solver->N			= N;
@@ -11,7 +13,7 @@ fluid_solver* solver_create (uint32_t N, float dt, float diff, float visc){
 	solver->v			= (float *) malloc ( size*sizeof(float) );
 	solver->u_prev		= (float *) malloc ( size*sizeof(float) );
 	solver->v_prev		= (float *) malloc ( size*sizeof(float) );
-	solver->dens		= (float *) malloc ( size*sizeof(float) );
+	solver->dens		= (float *) malloc ( size*sizeof(float) );	
 	solver->dens_prev	= (float *) malloc ( size*sizeof(float) );
 	if ( !solver->u || !solver->v || !solver->u_prev || !solver->v_prev || !solver->dens || !solver->dens_prev ) {
 		fprintf ( stderr, "cannot allocate data\n" );
@@ -22,11 +24,11 @@ fluid_solver* solver_create (uint32_t N, float dt, float diff, float visc){
 }
 
 void solver_destroy ( fluid_solver* solver ){
-	if ( solver->u != NULL ){	free ( solver->u );	solver->u = NULL;	}
+	if ( solver->u != NULL ){	free ( solver->u );	solver->u = NULL;	}		
 	if ( solver->v != NULL ){	free ( solver->v );	solver->v = NULL;	}
 	if ( solver->u_prev != NULL){	free ( solver->u_prev );solver->u_prev = NULL; 	}
 	if ( solver->v_prev != NULL){	free ( solver->v_prev );solver->v_prev = NULL;	}
-	if ( solver->dens != NULL){		free ( solver->dens );	solver->dens = NULL;	}
+	if ( solver->dens != NULL){		free ( solver->dens );	solver->dens = NULL;	}	
 	if ( solver->dens_prev != NULL ){	free ( solver->dens_prev );	solver->dens_prev = NULL;	}
 	free(solver);
 }
@@ -74,15 +76,15 @@ void solver_vel_step ( fluid_solver* solver, float * u0, float * v0){
 	solver_add_source ( solver, solver->u, u0); solver_add_source ( solver, solver->v, v0);
 	SWAP ( u0, solver->u ); solver_diffuse ( solver, 1, solver->u, u0);
 	SWAP ( v0, solver->v ); solver_diffuse ( solver, 2, solver->v, v0);
-	solver_project_c ( solver, u0, v0 );
+	solver_project ( solver, u0, v0 );
 	SWAP ( u0, solver->u ); SWAP ( v0, solver->v );
 	solver_advect ( solver, 1, solver->u, u0, u0, v0); solver_advect ( solver, 2, solver->v, v0, u0, v0);
-	solver_project_c ( solver, u0, v0 );
+	solver_project ( solver, u0, v0 );
 }
 
 void solver_diffuse ( fluid_solver* solver, uint32_t b, float * x, float * x0){
 	float a=solver->dt*solver->diff*solver->N*solver->N;
-	solver_lin_solve_c ( solver, b, x, x0, a, 1+4*a );
+	solver_lin_solve ( solver, b, x, x0, a, 1+4*a );
 }
 
 void solver_advect ( fluid_solver* solver, uint32_t b, float * d, float * d0, float * u, float * v){
@@ -97,22 +99,22 @@ void solver_advect ( fluid_solver* solver, uint32_t b, float * d, float * d0, fl
 		d[IX(i,j)] = s0*(t0*d0[IX(i0,j0)]+t1*d0[IX(i0,j1)])+
 					 s1*(t0*d0[IX(i1,j0)]+t1*d0[IX(i1,j1)]);
 	END_FOR
-	solver_set_bnd_c ( solver, b, d );
+	solver_set_bnd ( solver, b, d );
 }
 
 /* SIMD IMPLEMENTATION */
-
-void solver_lin_solve_c ( fluid_solver* solver, uint32_t b, float * x, float * x0, float a, float c ){
+/*
+void solver_lin_solve ( fluid_solver* solver, uint32_t b, float * x, float * x0, float a, float c ){
 	uint32_t i, j, k;
 	for ( k=0 ; k<20 ; k++ ) {
 		FOR_EACH_CELL
 			x[IX(i,j)] = (x0[IX(i,j)] + a*(x[IX(i-1,j)]+x[IX(i+1,j)]+x[IX(i,j-1)]+x[IX(i,j+1)]))/c;
 		END_FOR
-		solver_set_bnd_c ( solver, b, x );
+		solver_set_bnd ( solver, b, x );
 	}
-}
+}*/
 
-void solver_set_bnd_c ( fluid_solver* solver, uint32_t b, float * x ){
+void solver_set_bnd ( fluid_solver* solver, uint32_t b, float * x ){
 	uint32_t i;
 	uint32_t N = solver->N;
 	for ( i=1 ; i<=N ; i++ ) {
@@ -127,17 +129,17 @@ void solver_set_bnd_c ( fluid_solver* solver, uint32_t b, float * x ){
 	x[IX(N+1,N+1)] = 0.5f*(x[IX(N,N+1)]+x[IX(N+1,N)]);
 }
 
-void solver_project_c ( fluid_solver* solver, float * p, float * div ){
+/*void solver_project ( fluid_solver* solver, float * p, float * div ){
 	uint32_t i, j;
 	FOR_EACH_CELL
 		div[IX(i,j)] = -0.5f*(solver->u[IX(i+1,j)]-solver->u[IX(i-1,j)]+solver->v[IX(i,j+1)]-solver->v[IX(i,j-1)])/solver->N;
 		p[IX(i,j)] = 0;
-	END_FOR
-	solver_set_bnd_c ( solver, 0, div ); solver_set_bnd_c ( solver, 0, p );
-	solver_lin_solve_c ( solver, 0, p, div, 1, 4 );
+	END_FOR	
+	solver_set_bnd ( solver, 0, div ); solver_set_bnd ( solver, 0, p );
+	solver_lin_solve ( solver, 0, p, div, 1, 4 );
 	FOR_EACH_CELL
 		solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)]);
 		solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)]);
 	END_FOR
-	solver_set_bnd_c ( solver, 1, solver->u ); solver_set_bnd_c ( solver, 2, solver->v );
-}
+	solver_set_bnd ( solver, 1, solver->u ); solver_set_bnd ( solver, 2, solver->v );
+}*/
