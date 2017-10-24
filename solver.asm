@@ -540,24 +540,34 @@ solver_project:
 
 	push rbp				;alineada
 	mov rsp, rbp
+	push rbx
+	push r12
 	push r13				;desalineada
 	push r14				;alineada
 	push r15				;desalineada
-	sub rsp, 24				;alineada
+	sub rsp, 16				;alineada
 
 	mov r15, rdi ; solver
-	mov r14, rsi ; p
-	mov r13, rdx ; div
-	mov r12, [r15 + offset_fluid_solver_N] ; N
-	sar r12, 4 ; divido N por 4 columnas
-	mov [rsp + 8], r12 ; cantidad de filas
-	mov [rsp + 16], r12 ; cantidad de columnas
-	mov r12, 1 ; contador de filas
+	mov r13, rsi ; p
+	mov rbx, rdx ; div
+	mov r12, [r15 + offset_fluid_solver_u] ; U
+	mov r14, [r15 + offset_fluid_solver_v] ; V
+
+
+	mov ecx, [r15 + offset_fluid_solver_N] ;ecx=solver->N
+	
+	mov r11d, ecx ; R11  N
+	mov [rsp + 8], r11 ; cantidad de filas
+
+	sar r11, 2 ; divido N por 4 columnas
+	mov [rsp + 16], r11 ; cantidad de columnas
+	mov r10, 1 ; contador de filas
 	mov r11, 1 ; contador de columnas
 
-	;pxor xmm3, xmm3
-	;movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
 
+
+	pxor xmm3, xmm3
+	movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
 	pxor xmm4, xmm4
 	movdqu xmm4, [r15 + offset_fluid_solver_N]
 	movdqu xmm5, xmm4
@@ -574,28 +584,25 @@ solver_project:
 	pxor xmm8, xmm8
 
 
-	mov r10, [rsp + 8]
 	.primerCiclo:
 	; FOR_EACH_CELL
 	; 	div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
 	; 	p[IX(i,j)] = 0;
 	; END_FOR
 	.colCicloP:
-	movdqu xmm0, [r15] ; celdas actuales
-	sub r15, r10
-	movdqu xmm1, [r15] ; celdas fila anterior
-	add r15, r10
-	add r15, r10
-	movdqu xmm2, [r15] ; celdas fila siguiente
+	movups [r13 + r11*4], xmm7 ; p[IX(i,j)] = 0;
 
 	cmp r11, 1
 	jne .compararFin
+
 	; comienzo de fila
 	; b b b b - - - - - - - -
 	; a a a a d d d d - - - -
 	; c c c c - - - - - - - -
 	; - - - - - - - - - - - -
 	; c - b
+	
+	jmp .finColCicloP
 
 	.compararFin:
 	cmp r11, [rsp + 16]
@@ -612,60 +619,68 @@ solver_project:
 	; - - - - - - - - x x x x
 	; - - - - - - - - - - - -
 	.finColCicloP:
-	inc byte [rsp + 16]
+	movups [rbx + r11*4], xmm8 ; div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
+	inc r11
 	cmp r11, [rsp + 16]
 	jg .finPrimerCiclo
 	jmp .colCicloP
 	.finPrimerCiclo:
-	inc byte [rsp + 8]
-	cmp r12, [rsp + 8]
-	jg .siguiente
-	mov dword [rsp + 16], 0
+	inc r10
+	cmp r10, [rsp + 8]
+	jge .siguiente
+	mov r11, 1
 	jmp .primerCiclo
 
 	.siguiente:
 
-	; 	solver_set_bnd ( solver, 0, div );
+	; solver_set_bnd ( solver, 0, div );
 	mov rdi, r15
 	mov rsi, 0
-	mov rdx, r13
+	mov rdx, rbx
 	call solver_set_bnd
 	; 	solver_set_bnd ( solver, 0, p );
 	mov rdi, r15
 	mov rsi, 0
-	mov rdx, r14
+	mov rdx, r13
+	call solver_set_bnd
 	; 	solver_lin_solve ( solver, 0, p, div, 1, 4 );
 	mov rdi, r15
 	mov rsi, 0
-	mov rdx, r14
-	mov rcx, r13
+	mov rdx, r13
+	mov rcx, rbx
 	mov r8, 1
 	mov r9, 4
 	call solver_lin_solve
 
 
+	
+	; mov r13, rsi ; p
+	; mov rbx, rdx ; div
+	; mov r12, [r15 + offset_fluid_solver_u] ; U
+	; mov r14, [r15 + offset_fluid_solver_v] ; V
+
+	mov r10, 1 ; contador de filas
+	mov r11, 1 ; contador de columnas
+
+	
+
+
 	.segundoCiclo:
-	; FOR_EACH_CELL
-	; 	solver->u[IX(i,j)] -= 0.5f * solver->N * (p[IX(i+1,j)] - p[IX(i-1,j)]);
-	; mascaras:
-	; 	solver->v[IX(i,j)] -= 0.5f * solver->N * (p[IX(i,j+1)] - p[IX(i,j-1)]);
-	; END_FOR
+	; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)] - p[IX(i-1,j)]);
+	; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]);
 	.colCicloS:
-	movdqu xmm0, [r15] ; celdas actuales
-	sub r15, r10
-	movdqu xmm1, [r15] ; celdas fila anterior
-	add r15, r10
-	add r15, r10
-	movdqu xmm2, [r15] ; celdas fila siguiente
+	
 
 	cmp r11, 1
 	jne .compararFinS
 	; comienzo de fila
+	;u -= 0.5 * N * c - b
 	; b b b b - - - - - - - -
 	; a a a a d d d d - - - -
 	; c c c c - - - - - - - -
 	; - - - - - - - - - - - -
 	; c - b
+	
 
 	.compararFinS:
 	cmp r11, [rsp + 16]
@@ -682,31 +697,33 @@ solver_project:
 	; - - - - - - - - x x x x
 	; - - - - - - - - - - - -
 	.finColCicloS:
-	inc byte [rsp + 16]
+	movups [r12 + r11*4], xmm7 ; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)]);
+	movups [r14 + r11*4], xmm8 ; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)]);
+	inc r11
 	cmp r11, [rsp + 16]
-	jg .finsegundoCiclo
+	jg .finSegundoCiclo
 	jmp .colCicloS
-	.finsegundoCiclo:
-	inc byte [rsp + 8]
-	cmp r12, [rsp + 8]
-	jg .siguiente
-	mov dword [rsp + 16], 0
-	jmp .segundoCiclo
+	.finSegundoCiclo:
+	inc r10
+	cmp r10, [rsp + 8]
+	jge .fin
+	mov r11, 1
+	jmp .segundoCiclo	
 
 
-
+	.fin:
 	; solver_set_bnd ( solver, 1, solver->u );
 	mov rdi, r15
 	mov rsi, 1
-	mov rdx, [rdi + offset_fluid_solver_u]
+	mov rdx, r12
 	call solver_set_bnd
 	; solver_set_bnd ( solver, 2, solver->v );
 	mov rdi, r15
-	mov rsi, 1
-	mov rdx, [rdi + offset_fluid_solver_v]
+	mov rsi, 2
+	mov rdx, r14
 	call solver_set_bnd
 
-	add rsp, 24
+	add rsp, 16
 	pop r15
 	pop r14
 	pop r13
