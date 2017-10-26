@@ -5,6 +5,36 @@ Realizamos distintas corridas de nuestro codigo, tanto en ASM, como en C con las
 
 \subsection{solver\_lin\_solve}
 
+El objetivo a alcanzar fue que la implementacion de solver$\_$lin$\_$solve en asm tarda menos que alguna de las implementaciones de c en O, O2 u O3. Para ello se hizo un experimento en el cual para un nivel de optimizacion ejecuto 1000 veces la funcion en asm y en c para tres tamaños diferentes de matrices. Por cada llamado se le va a tomar el tiempo, es decir la cantidad de clocks que le toma en ejecutarse. Ademas para evitar por ejemplo que los clocks que le toma a la funcion en asm para la matriz de tamaño 256 sean altos en principio y luego bajen mucho, lo que se hace es llamar a la funcion de asm con un tamaño de matriz despues a la de c con un tamaño de matriz diferente e ir intercalando los llamados sucesivamente. 
+El valor del parametro 'b' se lo dejo fijo porque no lo usa solver$\_$lin$\_$solve ya que se lo pasa a solver$\_$set$\_$bnd. El valor de 'a' y 'c' se los dejo fijos, ya que solo multiplican y dividen valores para modificar una de las matrices que se le pasan por parametreo a solver$\_$lin$\_$solve.
+Para un tamaño de matriz en un fichero estaran los clocks que le toma ejecutar a la funcion de c en O0, abajo siguen los clocks de O2 y por ultimo estan los de O3. Los clocks que le toman a la funcion de asm se guarda de la misma forma que c.
+  
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_128.png}
+  	\caption{Performance para Matriz 128x128}
+  	\label{fig:M128}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_256.png}
+  	\caption{Performance para Matriz 256x256}
+  	\label{fig:M256}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_512.png}
+  	\caption{Performance para Matriz 512x512}
+  	\label{fig:M512}
+\end{figure}
+
+\newpage
+
 \subsection{solver\_set\_bnd}
 
 En solver$\_$set$\_$bnd se hicieron 4 gráficos para comparar ASM y C con los distintos tamaños, que son iguales a los tamaños de las imágenes de la cátedra. El solver tiene 2 matrices de floats, que son las que utilizamos para hacer los experimentos en este caso. Si bien el $b$ se cambió en cada iteración para que el procesador no cachee los experimentos y tengamos tiempos medianamente razonables, no se graficó ya que no influye en el algoritmo.
