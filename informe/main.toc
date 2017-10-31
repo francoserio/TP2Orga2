@@ -4,9 +4,9 @@
 \contentsline {subsection}{\numberline {2.1}solver\_lin\_solve}{4}
 \contentsline {subsection}{\numberline {2.2}solver\_set\_bnd}{4}
 \contentsline {subsection}{\numberline {2.3}solver\_project}{5}
-\contentsline {section}{\numberline {3}Resultados}{6}
-\contentsline {subsection}{\numberline {3.1}solver\_lin\_solve}{6}
-\contentsline {subsection}{\numberline {3.2}solver\_set\_bnd}{6}
-\contentsline {subsection}{\numberline {3.3}solver\_project}{8}
-\contentsline {section}{\numberline {4}Conclusi\'on}{9}
-\contentsline {subsection}{\numberline {4.1}C vs ASM}{9}
+\contentsline {section}{\numberline {3}Resultados}{7}
+\contentsline {subsection}{\numberline {3.1}solver\_lin\_solve}{7}
+\contentsline {subsection}{\numberline {3.2}solver\_set\_bnd}{7}
+\contentsline {subsection}{\numberline {3.3}solver\_project}{9}
+\contentsline {section}{\numberline {4}Conclusi\'on}{10}
+\contentsline {subsection}{\numberline {4.1}C vs ASM}{10}

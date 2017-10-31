@@ -21,3 +21,28 @@ A su vez, si en vez de 750 repeticiones se hicieran menos, los datos que se obti
   	\caption{ASM VS C solver$\_$set$\_$bnd con 200 iteraciones}
   	\label{fig:ASMU}
 \end{figure}
+
+{\scshape\Large solver$\_$lin$\_$solve\par}
+
+Se puede ver que asm tarda menos que todos los niveles de optimizacion para los tres tamaño de matrices. Para poder tener mas certeza que esto pasa y de que los outliers no sean muchos en cada muestra, en vez de probar con 1000 repeticiones el experimento anterior, se probo para una matriz de 512 con 50, 125, 250, 500, 2000 y 3000. Y se puede observar que los nuevos graficos son muy similares a los del experimento de la seccion resutados. Entonces esto nos quiere decir que asm tarda menos que los diferentes niveles de optimizacion tanto para pocas repeticiones como muchas. 
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_512_50.png}
+  	\caption{Performance para matriz de 512x512 con 50 repeticiones}
+  	\label{fig:M50it}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_512_500.png}
+  	\caption{Performance para matriz de 512x512 con 500 repeticiones}
+  	\label{fig:M500it}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  	\includegraphics[width=.6\linewidth]{Matriz_512_3000.png}
+  	\caption{Performance para matriz de 512x512 con 3000 repeticiones}
+  	\label{fig:M3000it}
+\end{figure}

@@ -1,6 +1,8 @@
 extern free
 extern malloc
 
+extern solver_set_bnd_c
+
 section .data
 
 ceroCinco: dd 0.5, 0.5, 0.5, 0.5
@@ -306,8 +308,9 @@ solver_set_bnd_asm:
 	pop rbp
 	ret
 
-global solver_lin_solve
-solver_lin_solve:
+
+global solver_lin_solve_asm
+solver_lin_solve_asm:
 	;stack frame
 	push rbp
     mov rbp, rsp
@@ -316,8 +319,6 @@ solver_lin_solve:
     push r13
     push r14
 	push r15
-
-
 
 	mov rbx, rdi ;rbx=rdi=solver
 	mov r12, rdx ;r12=rdx=x
@@ -329,6 +330,7 @@ solver_lin_solve:
 	;mov dword [rsp], NULL ;k esta en la pila
 	;sub rsp, 8
 	sub rsp, 8 ;reservo memoria para b
+
 	mov [rsp+1], esi ;b esta en la pila
 
 	sub rsp, 8 ;reservo memoria para k
