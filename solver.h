@@ -92,5 +92,6 @@ void solver_diffuse ( fluid_solver* solver, uint32_t b, float * x, float * x0);
 void solver_advect ( fluid_solver* solver, uint32_t b, float * d, float * d0, float * u, float * v);
 void solver_project_c ( fluid_solver* solver, float * p, float * div );
 void solver_set_bnd_asm ( fluid_solver* solver, uint32_t b, float * x );
+void solver_lin_solve_asm ( fluid_solver* solver, uint32_t b, float * x, float * x0, float a, float c );
 
 #endif

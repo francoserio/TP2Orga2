@@ -2,7 +2,20 @@ Vamos a trabajar con matrices. Estas matrices de velocidad son la representaci\'
 Al recorrer la matriz, vamos a poder acceder a 4 celdas a la vez. De esta manera podemos aprovechar el modelo SIMD, para poder operar con estos datos juntos, y asi realizar menos iteraciones.
 
 \subsection{solver\_lin\_solve}
-
+La manera en la que opera una iteracion del ciclo mas superficial de solver$\_$lin$\_$solve es:
+\begin{itemize}
+\item Primero guardo en edx N+2, es decir la cantidad de elementos de una fila.
+\item En el for i, se va a realizar las modificaciones para cuatro columnas contiguas empezando desde l primera y avanzando de a cuatro columnas.
+\item Al comienzo de for i, rax quiero que apunte a la posicion (i,1) de la matriz x y r8 apunta a la misma posicion pero en la matriz x0. Tambien me traigo a xmm4 el bloque de 4 floats contiguos que comienza en (i,0).
+\item En el for j, se va a realizar las modificaciones para un bloque de cuatro floats contiguos que comienzan en la posicion (i,j) y se va a ir avanzando de a una fila
+\item Dentro del for j, tanto rax y r8 van a apuntar a la pos (i,j) de sus respectivas matrices. Y hago los siguientes accesos a memoria, en xmm2 traigo los cuatro floats contiguos que comienzan en (i,j+1) de x, en xmm3 traigo a los que comienzan en (i+1,j) de x, en xmm5 traigo a los que comienzan en (i-1,j) de x y en xmm6 traigo a los que comienzan en (i,j) de x0. En xmm4 estaria el bloque que comienza en (i,j-1) de x  que lo tengo  de la iteracion anterior, si es que no estoy en la primera iteracion, pero en caso de estarlo traigo a los cuatro floats de (i,0) de x.
+\item Usando las operaciones de SIMD correspondientes hago que a cada float de xmm0 cuyo valor es 'a' multiplique a cada float de xmm2, xmm3 y xmm4. Tambien  cada float de xmm1 cuyo valor es 'c' divide a cada float de xmm2, xmm3, xmm4 y xmm6.
+\item Para modificar el contenido del bloque de cuatro floats que comienzan en (i,j) de x, a xmm6 le sumo xmm2 y xmm3, ya que los floats de xmm2 y xmm3 son los valores de matriz x aun no modificados. Tambien le sumo xmm4, ya que los floats de xmm4 son los valores de la matriz x ya modificados o de la fila 0 en caso de ser la primera iteracion. Por ultimo, le sumo a cada float de xmm6 su respectivo valor de la izquierda ya modificado. Para hacer esto, armo el valor de la izquierda, lo multiplico por 'a' y divido por 'c' para despues sumarlo en la posicion correspondiente. Entonces lo obtenido en xmm6 lo guardo en lo apuntado por rax y en xmm4 para usarlo en la siguiente iteracion. 
+\item Antes de terminar una iteracion de j, actualizo rax y r8 moviendolos N+2 floats. La idea es seguir en la siguiente fila. 
+\item Antes de terminar una iteracion de i, actualizo rcx para que valga N+2, asi puedo armar rax en la siguiente iteracion. La idea es seguir con las siguientes 4 columnas.
+\item Hago un llamado a solver$\_$set$\_$bnd, pasandole los parametros apropiados. Despues del llamado reconstruyo xmm0 para que tenga cuatro float 'a' y xmm1 posea cuatros float 'c'.
+\item Si bien no corresponde a una iteracion, aclaro que uso los 5 registros que preservan su valor segun la convencion guardando 5 de los 6 parametros. El parametro faltante b y la variable local k las apilo en el stack(apilo primero b y despues k).
+\end{itemize}
 
 \subsection{solver\_set\_bnd}
 Solver$\_$set$\_$bnd se implementó de la siguiente manera:
