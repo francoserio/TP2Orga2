@@ -129,13 +129,15 @@ void solver_set_bnd ( fluid_solver* solver, uint32_t b, float * x ){
 	x[IX(N+1,N+1)] = 0.5f*(x[IX(N,N+1)]+x[IX(N+1,N)]);
 }
 
+
 void solver_project_1 ( fluid_solver* solver, float * p, float * div ){
 	uint32_t i, j;
-	FOR_EACH_CELL
-		div[IX(i,j)] = -0.5f*(solver->u[IX(i+1,j)]-solver->u[IX(i-1,j)]+solver->v[IX(i,j+1)]-solver->v[IX(i,j-1)])/solver->N;
-		p[IX(i,j)] = 0;
-	END_FOR	
-	solver_set_bnd ( solver, 0, div ); solver_set_bnd ( solver, 0, p );
+	// FOR_EACH_CELL
+	// div[IX(i,j)] = -0.5f*(solver->u[IX(i+1,j)]-solver->u[IX(i-1,j)]+solver->v[IX(i,j+1)]-solver->v[IX(i,j-1)])/solver->N;
+	// 	p[IX(i,j)] = 0;
+	// END_FOR	
+	solver_set_bnd ( solver, 0, div ); 
+	solver_set_bnd ( solver, 0, p );
 	solver_lin_solve ( solver, 0, p, div, 1, 4 );
 	FOR_EACH_CELL
 		solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)]);

@@ -547,7 +547,7 @@ solver_project:
 	push r13				;desalineada
 	push r14				;alineada
 	push r15				;desalineada
-	sub rsp, 8				;alineada
+	sub rsp, 16				;alineada
 
 	mov r15, rdi ; solver
 	mov r13, rsi ; p
@@ -558,24 +558,24 @@ solver_project:
 
 	mov ecx, [r15 + offset_fluid_solver_N] ;ecx=solver->N
 	
+	xor r11, r11	
 	mov r11d, ecx ; R11  N
-	add r11, 2
-	mov r10, r11
-	imul r11, r11
+	
 	mov [rsp + 8], r11 ; cantidad de filas
-
-	mov r11, r10
-	add r11, 4 ; arranco en la primer fila, primer columna
+	add r11, 2
+	mov [rsp + 16], r11 ; n+2
+	
 	xor r9, r9
-	mov r9, r10
-
+	inc r9 ; r9 = 1 columna
+	xor r10, r10
+	inc r10 ; r10 = 1 fila
 
 	pxor xmm3, xmm3
-	movdqu xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
-	movdqu xmm2, xmm3 ;xmm2 = | 0.5 | 0.5 | 0.5 | 0.5 |
+	movupd xmm3, [ceroCinco]	;xmm3 = | 0.5 | 0.5 | 0.5 | 0.5 |
+	movupd xmm2, xmm3 ;xmm2 = | 0.5 | 0.5 | 0.5 | 0.5 |
 	pxor xmm4, xmm4
-	movdqu xmm4, [r15 + offset_fluid_solver_N]
-	movdqu xmm5, xmm4
+	movupd xmm4, [r15 + offset_fluid_solver_N]
+	movupd xmm5, xmm4
 	pslldq xmm5, 4
 	paddusb xmm4, xmm5
 	pslldq xmm5, 4
@@ -590,9 +590,9 @@ solver_project:
 	pxor xmm8, xmm8
 
 
-	divps xmm2, xmm4 ; xmm2 = | 0.5 * N | 0.5 * N | 0.5 * N | 0.5 * N 
-	movdqu xmm1, [negativos] ; xmm1 -1.0 | -1.0 | -1.0 | -1.0
-	pmuldq xmm2, xmm1 ; xmm2 = | -0.5 * N | -0.5 * N | -0.5 * N | -0.5 * N 
+	;divps xmm2, xmm4 ; xmm2 = | 0.5 / N | 0.5 / N | 0.5 / N | 0.5 / N 
+	movupd xmm1, [negativos] ; xmm1 -1.0 | -1.0 | -1.0 | -1.0
+	pmuldq xmm2, xmm1 ; xmm2 = | -0.5 / N | -0.5 / N | -0.5 / N | -0.5 / N 
 	.primerCiclo:
 	; FOR_EACH_CELL
 	; 	div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
@@ -600,162 +600,206 @@ solver_project:
 	; END_FOR
 	.colCicloP:
 	
-	;movups [r13 + r11], xmm7 ; p[IX(i,j)] = 0;
 	
-	add r11, [rsp + 8] ; voy a la fila siguiente
+	
+	xor r11, r11
+	inc r10 ; voy a la fila siguiente
+	mov r11, r10
+	mov rax, [rsp + 16]
+	mul r11 ; fila * (n+2)
+	sal r11, 2 ; fila * (n+2) * 4
+	sal r9, 2 ; r9*4
+	add r11, r9 ; fila * (n+2) * 4 + columna*4
+
+	;u[IX(i+1,j+3)] | u[IX(i+1,j+2)] | u[IX(i+1,j+1)] | u[IX(i+1,j)]	
+
  	movups xmm7, [r12 + r11] ; u[IX(i+1,j+3)] | u[IX(i+1,j+2)] | u[IX(i+1,j+1)] | u[IX(i+1,j)]
-	sub r11, [rsp + 8] ; vuelvo a la fila actual
-	sub r11, [rsp + 8] ; voy a la fila anterior
+	dec r10 ; vuelvo a la fila actual
+	dec r10 ; voy a la fila anterior
+
+	xor r11, r11
+	mov r11, r10
+	mov rax, [rsp + 16]
+	mul r11 ; fila * (n+2)
+	sal r11, 2 ; fila * (n+2) * 4
+	add r11, r9 ; fila * (n+2) * 4 + columna*4
+
 	movups xmm6, [r12 + r11] ; u[IX(i-1,j+3)] | u[IX(i-1,j+2)] | u[IX(i-1,j+1)] | u[IX(i-1,j)]
-	add r11, [rsp + 8] ; vuelvo a la fila actual
 	
-	psubq xmm7, xmm6 ; xmm7 = solver->u[IX(i+1,j+3)] - solver->u[IX(i-1,j+3)] | solver->u[IX(i+1,j+2)] - solver->u[IX(i-1,j+2)] | solver->u[IX(i+1,j+1)] - solver->u[IX(i-1,j+1)] | solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)]
+	inc r10 ; vuelvo a la fila actual
+	
+	subpd xmm7, xmm6 ; xmm7 = solver->u[IX(i+1,j+3)] - solver->u[IX(i-1,j+3)] | solver->u[IX(i+1,j+2)] - solver->u[IX(i-1,j+2)] | solver->u[IX(i+1,j+1)] - solver->u[IX(i-1,j+1)] | solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)]
+
+	xor r11, r11
+	mov r11, r10
+	mov rax, [rsp + 16]
+	mul r11 ; fila * (n+2)
+	sal r11, 2 ; fila * (n+2) * 4
 
 	movups xmm5, [r14 + r11] ; v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)]
 	movdqu xmm8, xmm5 ; v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)]
 	psrldq xmm8, 4 ; 0 | v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)]
-	add r11, 4 ; voy a las 4 columnas siguientes
+	
+	add r11, 16 
+	
 	movups xmm6, [r14 + r11] ;v[IX(i,j+7)] | v[IX(i,j+6)] | v[IX(i,j+5)] | v[IX(i,j+4)]
 	pslldq xmm6, 12 ; v[IX(i,j+4)] | 0 | 0 | 0
-	paddq xmm8, xmm6 ; v[IX(i,j+4)] | v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)]
+	addpd xmm8, xmm6 ; v[IX(i,j+4)] | v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)]
 	movdqu xmm6, xmm5 ; v[IX(i,j+3)] | v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)]
 	pslldq xmm6, 4 ; v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)] | 0
-	sub r11, 8 ; vuelvo a las 4 columnas anteriores
+	
+	sub r11, 32 ; vuelvo a las 4 columnas anteriores
 	movups xmm5, [r14 + r11] ;v[IX(i,j-1)] | v[IX(i,j-2)] | v[IX(i,j-3)] | v[IX(i,j-4)]
-	add r11, 4 ; vuelvo a las columnas actuales
+	
+	add r11, 16 ; vuelvo a las columnas actuales
+	
 	psrldq xmm5, 12 ; 0 | 0 | 0 | v[IX(i,j-1)]
-	paddq xmm5, xmm6 ; v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)] | v[IX(i,j-1)]
+	addpd xmm5, xmm6 ; v[IX(i,j+2)] | v[IX(i,j+1)] | v[IX(i,j)] | v[IX(i,j-1)]
 
-	psubq xmm8, xmm5  ; solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]
+	subpd xmm8, xmm5  ; solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]
 
 
-	psubq xmm7, xmm8 ; (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)])
+	addpd xmm7, xmm8 ; (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)])
 
-	pmuldq xmm7, xmm2 ; -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
+	mulpd xmm7, xmm2 ; -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
+	
+
+	xor r11, r11
+	mov r11, r10
+	mov rax, [rsp + 16]
+	mul r11 ; fila * (n+2)
+	sal r11, 2 ; fila * (n+2) * 4
+	add r11, r9 ; fila * (n+2) * 4 + columna*4
+	
+	mov dword [r13 + r11], 0 ; p[IX(i,j+3)] = 0 | p[IX(i,j+2)] = 0 | p[IX(i,j+1)] = 0; | p[IX(i,j)] = 0
+
+	sar r9, 2
 
 	.finColCicloP:
 	movups [rbx + r11], xmm7 ; div[IX(i,j)] = -0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
-	add r11, 4
-	cmp r11, [rsp + 8]
-	jge .siguiente
+	add r9, 4
+	cmp r9, [rsp + 8] ; comparar con n
+	jge .avanzoFila
+	jmp .primerCiclo
 
-	add r10, r9
-	cmp r11, r10
-	jne .primerCiclo
-	add r11, 4
+	.avanzoFila:
+	mov r9, 1
+	inc r10
+	cmp r10, [rsp + 8] ; comparar con n
+	jg .siguiente
 	jmp .primerCiclo
 	.siguiente:
 
-	; solver_set_bnd ( solver, 0, div );
-	mov rdi, r15
-	mov rsi, 0
-	mov rdx, rbx
-	call solver_set_bnd
-	; 	solver_set_bnd ( solver, 0, p );
-	mov rdi, r15
-	mov rsi, 0
-	mov rdx, r13
-	call solver_set_bnd
-	; 	solver_lin_solve ( solver, 0, p, div, 1, 4 );
-	mov rdi, r15
-	mov rsi, 0
-	mov rdx, r13
-	mov rcx, rbx
-	mov r8, 1
-	mov r9, 4
-	call solver_lin_solve
+	; ; solver_set_bnd ( solver, 0, div );
+	; mov rdi, r15
+	; mov rsi, 0
+	; mov rdx, rbx
+	; call solver_set_bnd
+	; ; 	solver_set_bnd ( solver, 0, p );
+	; mov rdi, r15
+	; mov rsi, 0
+	; mov rdx, r13
+	; call solver_set_bnd
+	; ; 	solver_lin_solve ( solver, 0, p, div, 1, 4 );
+	; mov rdi, r15
+	; mov rsi, 0
+	; mov rdx, r13
+	; mov rcx, rbx
+	; mov r8, 1
+	; mov r9, 4
+	; call solver_lin_solve
 
-	; mov r13, rsi ; p
-	; mov rbx, rdx ; div
-	; mov r12, [r15 + offset_fluid_solver_u] ; U
-	; mov r14, [r15 + offset_fluid_solver_v] ; V
+	; ; mov r13, rsi ; p
+	; ; mov rbx, rdx ; div
+	; ; mov r12, [r15 + offset_fluid_solver_u] ; U
+	; ; mov r14, [r15 + offset_fluid_solver_v] ; V
 
-	pxor xmm5, xmm5
-	pxor xmm6, xmm6
-	pxor xmm7, xmm7
-	pxor xmm8, xmm8
+	; pxor xmm5, xmm5
+	; pxor xmm6, xmm6
+	; pxor xmm7, xmm7
+	; pxor xmm8, xmm8
 
-	pmuldq xmm4, xmm3 ; xmm4 0.5*N | 0.5*N | 0.5*N | 0.5*N
+	; pmuldq xmm4, xmm3 ; xmm4 0.5*N | 0.5*N | 0.5*N | 0.5*N
 	
 
 
-	mov r10, [rsp + 8] ; cantidad de filas
-	mov r11, r10
-	add r11, 4 ; arranco en la primer fila, primer columna
-	xor r9, r9
-	mov r9, r10
+	; mov r10, [rsp + 8] ; cantidad de filas
+	; mov r11, r10
+	; add r11, 4 ; arranco en la primer fila, primer columna
+	; xor r9, r9
+	; mov r9, r10
 
 
 
-	.segundoCiclo:
-	; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)] - p[IX(i-1,j)]);
-	; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]);
-	.colCicloS:
-	; U
-	add r11, [rsp + 8] ; voy a la fila siguiente
-	movups xmm7, [r13 + r11] ; p[IX(i+1,j+3)] | p[IX(i+1,j+2)] | p[IX(i+1,j+1)] | p[IX(i+1,j)]
-	sub r11, [rsp + 8] ; vuelvo a la fila actual
-	sub r11, [rsp + 8] ; voy a la fila anterior
-	movups xmm6, [r13 + r11] ; p[IX(i-1,j+3)] | p[IX(i-1,j+2)] | p[IX(i-1,j+1)] | p[IX(i-1,j)]
-	add r11, [rsp + 8] ; vuelvo a la fila actual
-	pmuldq xmm7, xmm4 ; 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)]
-	psubq xmm7, xmm6 ; xmm7 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]);
+	; .segundoCiclo:
+	; ; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)] - p[IX(i-1,j)]);
+	; ; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]);
+	; .colCicloS:
+	; ; U
+	; add r11, [rsp + 8] ; voy a la fila siguiente
+	; movups xmm7, [r13 + r11] ; p[IX(i+1,j+3)] | p[IX(i+1,j+2)] | p[IX(i+1,j+1)] | p[IX(i+1,j)]
+	; sub r11, [rsp + 8] ; vuelvo a la fila actual
+	; sub r11, [rsp + 8] ; voy a la fila anterior
+	; movups xmm6, [r13 + r11] ; p[IX(i-1,j+3)] | p[IX(i-1,j+2)] | p[IX(i-1,j+1)] | p[IX(i-1,j)]
+	; add r11, [rsp + 8] ; vuelvo a la fila actual
+	; pmuldq xmm7, xmm4 ; 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)] | 0.5f*solver->N*(p[IX(i+1,j)]
+	; psubq xmm7, xmm6 ; xmm7 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]); | 0.5f*solver->N*(p[IX(i,j+1)] - p[IX(i,j-1)]);
 	
 
 
-	movups xmm5, [r13 + r11] ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
-	movdqu xmm8, xmm5 ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
-	psrldq xmm8, 4 ; 0 | p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)]
-	add r11, 4 ; voy a la columna siguiente
-	movups xmm6, [r13 + r11] ;p[IX(i,j+7)] | p[IX(i,j+6)] | p[IX(i,j+5)] | p[IX(i,j+4)]
-	pslldq xmm6, 12 ; p[IX(i,j+4)] | 0 | 0 | 0
-	paddq xmm8, xmm6 ; p[IX(i,j+4)] | p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)]
-	movdqu xmm6, xmm5 ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
-	pslldq xmm6, 4 ; p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)] | 0
-	sub r11, 8 ; voy a la columna anterior
-	movups xmm5, [r13 + r11] ;p[IX(i,j-1)] | p[IX(i,j-2)] | p[IX(i,j-3)] | p[IX(i,j-4)]
-	psrldq xmm5, 12 ; 0 | 0 | 0 | p[IX(i,j-1)]
-	paddq xmm5, xmm6 ; p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)] | p[IX(i,j-1)]
-	add r11, 4 ; vuelvo a la columna actual
-	pmuldq xmm8, xmm4 ; 0.5f*solver->N*(p[IX(i+1,j)]
-	psubq xmm8, xmm5 ; 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)])
+	; movups xmm5, [r13 + r11] ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
+	; movdqu xmm8, xmm5 ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
+	; psrldq xmm8, 4 ; 0 | p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)]
+	; add r11, 4 ; voy a la columna siguiente
+	; movups xmm6, [r13 + r11] ;p[IX(i,j+7)] | p[IX(i,j+6)] | p[IX(i,j+5)] | p[IX(i,j+4)]
+	; pslldq xmm6, 12 ; p[IX(i,j+4)] | 0 | 0 | 0
+	; paddq xmm8, xmm6 ; p[IX(i,j+4)] | p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)]
+	; movdqu xmm6, xmm5 ; p[IX(i,j+3)] | p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)]
+	; pslldq xmm6, 4 ; p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)] | 0
+	; sub r11, 8 ; voy a la columna anterior
+	; movups xmm5, [r13 + r11] ;p[IX(i,j-1)] | p[IX(i,j-2)] | p[IX(i,j-3)] | p[IX(i,j-4)]
+	; psrldq xmm5, 12 ; 0 | 0 | 0 | p[IX(i,j-1)]
+	; paddq xmm5, xmm6 ; p[IX(i,j+2)] | p[IX(i,j+1)] | p[IX(i,j)] | p[IX(i,j-1)]
+	; add r11, 4 ; vuelvo a la columna actual
+	; pmuldq xmm8, xmm4 ; 0.5f*solver->N*(p[IX(i+1,j)]
+	; psubq xmm8, xmm5 ; 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)])
 	
-	.finColCicloS:
-	movups xmm5, [r12 + r11] ; solver->u[IX(i,j+3)] | solver->u[IX(i,j+2)] | solver->u[IX(i,j+1)] | solver->u[IX(i,j)]
-	psubq xmm5, xmm7 ; -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)])
-	movups [r12 + r11], xmm5; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)]);
+	; .finColCicloS:
+	; movups xmm5, [r12 + r11] ; solver->u[IX(i,j+3)] | solver->u[IX(i,j+2)] | solver->u[IX(i,j+1)] | solver->u[IX(i,j)]
+	; psubq xmm5, xmm7 ; -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)])
+	; movups [r12 + r11], xmm5; solver->u[IX(i,j)] -= 0.5f*solver->N*(p[IX(i+1,j)]-p[IX(i-1,j)]);
 
-	movups xmm5, [r14 + r11] ; solver->v[IX(i,j+3)] | solver->v[IX(i,j+2)] | solver->v[IX(i,j+1)] | solver->v[IX(i,j)]
-	psubq xmm5, xmm8 ; -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)])
-	movups [r14 + r11], xmm5; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)]);
+	; movups xmm5, [r14 + r11] ; solver->v[IX(i,j+3)] | solver->v[IX(i,j+2)] | solver->v[IX(i,j+1)] | solver->v[IX(i,j)]
+	; psubq xmm5, xmm8 ; -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)])
+	; movups [r14 + r11], xmm5; solver->v[IX(i,j)] -= 0.5f*solver->N*(p[IX(i,j+1)]-p[IX(i,j-1)]);
 
-	.finSegundoCiclo:
-	add r11, 4
-	cmp r11, [rsp + 8]
-	jge .fin
+	; .finSegundoCiclo:
+	; add r11, 4
+	; cmp r11, [rsp + 8]
+	; jge .fin
 
-	add r10, r9
-	cmp r11, r10
-	jne .segundoCiclo
-	add r11, 4
-	jmp .segundoCiclo
+	; add r10, r9
+	; cmp r11, r10
+	; jne .segundoCiclo
+	; add r11, 4
+	; jmp .segundoCiclo
 
 
-	.fin:
-	; solver_set_bnd ( solver, 1, solver->u );
-	mov rdi, r15
-	mov rsi, 1
-	mov rdx, r12
-	call solver_set_bnd
-	; solver_set_bnd ( solver, 2, solver->v );
-	mov rdi, r15
-	mov rsi, 2
-	mov rdx, r14
-	call solver_set_bnd
+	; .fin:
+	; ; solver_set_bnd ( solver, 1, solver->u );
+	; mov rdi, r15
+	; mov rsi, 1
+	; mov rdx, r12
+	; call solver_set_bnd
+	; ; solver_set_bnd ( solver, 2, solver->v );
+	; mov rdi, r15
+	; mov rsi, 2
+	; mov rdx, r14
+	; call solver_set_bnd
 
-	;call solver_project_1
+	call solver_project_1
 
-	add rsp, 8
+	add rsp, 16
 	pop r15
 	pop r14
 	pop r13
