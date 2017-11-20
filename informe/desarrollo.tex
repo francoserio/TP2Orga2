@@ -47,25 +47,28 @@ Solver$\_$set$\_$bnd se implementó de la siguiente manera:
 En cuanto al desarrollo de solver\_project, tuvimos q aplicar una formula a cada celda de la matriz, luego llamar solver\_set\_bnd y solver\_lin\_solve, y luego volver a procesar las celdas de la matriz.
 El metodo funciona de la siguiente manera:
 
-\begin{itemize}
-\item Primero, se van a hacer un total de (ancho * alto / 4) de iteraciones, dividimos a N por 4 porque vamos a agarrar de a 4 posiciones de la matriz.
-\item Vamos a diferenciar 3 casos, uno cuando estamos a principio de una fila, otro en el medio de la fila y otro al final de una fila.
-\item Estos casos nos van a servir a la hora de ver las posiciones $j+1$ y $j-1$.
-\item Comenzamos por traer 4 celdas de source al comienzo del ciclo.
-\item Si estamos al comienzo de la fila con el caso de inicio de fila, nos vamos a traer las 4 posiciones que estoy mirando, y las 4 siguientes.
-\item La primera posicion no nos va a interesar, porque luego la vamos a pisar, cuando llamemos al metodo que setea los bordes de la matriz.
-\item Utilizando SHIFTS vamos a acomodar los dos registros XMM de manera tal que podamos realizar la resta correspondiente, y obtener el valor de $j+1$ - $j-1$ para las cuatro posiciones que estamos mirando.
-\item Luego si estamos a mediados de la fila, vamos a tener las 4 celdas que estoy mirando, las 4 siguientes y las 4 anteriores.
-\item (Para poder aprovechar que las anteriores ya las vamos a tener de la iteracion anterior, las vamos almacenando en un XMM, donde guardamos las 4 celdas anteriores, asi no las tenemos que pedir a memoria nuevamente)
-\item Con estos 3 sets de 4 celdas, vamos a realizar SHIFTS nuevamente, para poder realizar la operacion entre las posiciones $j+1$ y $j-1$, para las cuatro celdas a la vez.
-\item Si entramos al caso que estamos al final de la fila, es analogo al caso de principio de fila, con la diferencia que aca vamos a traernos las 4 celdas que estamos mirando y las 4 anteriores. Operamos de la misma forma que al comienzo de la fila.
-\item Luego en cualquiera de los 3 casos, a la hora de operar con las posiciones $i+1$ y $i-1$, vamos a traernos en cada iteracion las 4 celdas actuales, las 4 celdas que se encuentran en la fila anterior, arriba de las actuales y las 4 celdas de la fila siguiente, que se encuentran debajo de las actuales.
-\item teniendo $anteriores$ y $siguientes$, podemos realizar una resta entre esos dos registros, para poder computar para las 4 celdas actuales, la operacion p[IX(i+1,j)]-p[IX(i-1,j) que queriamos realizar.
-\item Por ultimo, dependiendo del caso, vamos a utilizar una mascara que contiene valores $0.5$ y el valor $N$ para poder completar las operaciones con los valores que ya obtuvimos para las 4 celdas que estamos mirando.
-\item Una vez que terminamos con el primer ciclo, vamos a llamar a $solver\_set\_bnd$ y a $solver\_lin\_solve$.
-\item Luego vamos a construir el segundo ciclo, de la misma manera que construimos el primero, con la unica diferencia que vamos a realizar las operaciones correspondientes con las celdas que estamos mirando.
-\item Por ultimo llamamos al metodo $solver\_set\_bnd$.
 
+
+; 	div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
+	; 	p[IX(i,j)] = 0;
+
+\begin{itemize}
+\item El algoritmo cuenta con un ciclo incial, llamado a funciones auxiliares, otro ciclo, y otro llamado a funciones auxiliares.
+\item Para recorrer toda la matriz, vamos a realizar dos ciclos, uno dentro de otro, que van a ir desde 1 hasta N + 1, de esta manera no caemos en un caso que no se pueda resolver, ya que los bordes van a ser seteados cuando se llame a solver_set_bnd.
+\item Vamos a procesar 4 celdas por iteracion del ciclo, de esta manera, podemos procesar multiples datos en cada iteracion.
+\item Empezamos guardandonos mascaras, que contienen $|N|N|N|N|$ y $|-0.5f|-0.5f|-0.5f|-0.5f|$, para poder realizar los calculos necesarios.
+\item Luego, pasamos al primer ciclo, comenzamos por traer 4 celdas de source al comienzo del ciclo.
+\item Para operar con las celdas en posiciones $j+1$ y $j-1$, vamos a traernos en cada iteracion las 4 celdas actuales, las 4 celdas que se encuentran en la fila anterior, restando una fila al contador de filas, arriba de las actuales y las 4 celdas de la fila siguiente, sumando una fila al contador de las filas, que se encuentran debajo de las actuales.
+\item De esta manera podemos realizar el computo $solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)]$
+\item Luego, vamos a traernos las 4 celdas anteriores de la misma fila y las 4 celdas siguientes de la misma fila.
+\item Utilizando SHIFTS vamos a acomodar los dos registros XMM de manera tal que podamos realizar la resta correspondiente, y obtener el valor de $j+1$ - $j-1$ para las cuatro posiciones que estamos mirando.
+\item De esta manera podemos calcular el computo $solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]$
+\item Luego, restamos estos dos valores calculados anteriormente, para poder obtener $(solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)])$
+\item Luego, utilizando las mascaras que guardamos al principio, utilizando multiplicaciones y divisiones, podemos obtener el calculo $div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N$.
+\item A parte de realizar la asignaci\'on anterior, vamos a asignar ceros para realizar $p[IX(i,j)] = 0;$
+\item Luego, vamos a tener los llamados a $solver_set_bnd ( solver, 0, div )$, $solver_set_bnd ( solver, 0, p )$ y $solver_lin_solve ( solver, 0, p, div, 1, 4 )$.
+\item Luego, vamos a tener el segundo ciclo, este va a estar construido de la misma manera que el anterior, y el procesamiento de datos se va a realizar de la misma manera, la unica diferencia es que las operaciones se van a realizar trayendo los datos de otro puntero. Pero el funcionamiento y la manera de recorrerlo, es igual al anterior.
+\item Por ultimo vamos a realizar los llamados correspondientes a $solver_set_bnd ( solver, 1, solver->u )$ y $solver_set_bnd ( solver, 2, solver->v )$
 \end{itemize}
 
 De esta manera podemos aplicar el modelo SIMD a nuestro metodo. Aprovechando poder trabajar con multiples datos a la vez, nos vamos a ahorrar operaciones, lo que implica un menor tiempo de computo, y una performance mas alta de nuestro algoritmo.

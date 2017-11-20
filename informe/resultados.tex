@@ -73,4 +73,14 @@ Todo esto se vuelca en un csv, donde por python, con las bibliotecas NumPy y Mat
 
 \subsection{solver\_project}
 
-El solver 
+En $solver_project$ se realizaron 1000 ejecuciones de nuestro codigo en ASM y nuestro codigo en C, con las correspondientes optimizaciones O, O2, O3. Las ejecuciones se realizaron para distintos tamaños de matrices.
+Los tamaños que utilizamos fueron de 128, 256 y 512.
+En cada ejecucion, tomamos los tiempos de corrida del algoritmo, para poder utilizarlos para realiar graficos, para poder ver de manera mas clara cual es el rendimiento de nuestro codigo en ASM comparado con el codigo en C.
+Las mediciones realizadas las almacenamos en un archivo csv, el cual utilizamos para realizar los graficos mencionados anteirormente.
+Los graficos los realizamos utilizando codigo Python, con las bibliotecas Numpy y Matplotlib.
+En los graficos, expuestos a continuacion, podemos observar que nuestra hipotesis se cumple.
+Es clara la superioridad de performance del codigo ASM con operaciones SIMD, a comparacion de C.
+Y lo que podemos ver es que por mas que utilicemos las distintas optimizaciones para compilar el codigo C, igualmente el codigo ASM sigue siendo mas performante.
+
+graficos
+

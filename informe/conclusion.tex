@@ -46,3 +46,17 @@ Se puede ver que asm tarda menos que todos los niveles de optimizacion para los 
   	\caption{Performance para matriz de 512x512 con 3000 repeticiones}
   	\label{fig:M3000it}
 \end{figure}
+
+{\scshape\Large solver$\_$lin$\_$solve\par}
+
+Podemos observar que utilizar operaciones SIMD en lenguaje ASM, tiene una mejor performance al compararlo con las distintas optimizaciones de compilacion de codigo C.
+Tambien probamos para una matriz de 512 con 50, 125, 250, 500, 2000 y 3000 iteraciones.
+En los graficos podemos apreciar que ya sea en poca cantidad de iteraciones o en una cantidad alta, el codigo ASM es mas rapido que el codigo en C.
+Otra posible mejora que se podria realizar al codigo, es alinear la memoria y trabajar con la memoria alineada.
+De esta manera, deberiamos alinear la matriz inicial a modulo 16-4 y debemos cambiar las operaciones SIMD que trabajan con memoria desalineada, a las correspondientes para memoria alineada.
+Con esta mejora debemos poder ver que los tiempos de corrida del algoritmo, van a ser menores que los mencionados anteriormente en la seccion de resultados.
+
+
+
+
+
