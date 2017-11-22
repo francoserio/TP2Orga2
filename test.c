@@ -73,73 +73,209 @@ int run_solver_set_bnd() {
 }
 
 int run_solver_lin_solver(){
-	uint32_t b = 0;
-	unsigned long start;
-	unsigned long end;
-	unsigned long delta;
-	//unsigned int estado=0;
+  uint32_t b = 0;
+  unsigned long start;
+  unsigned long end;
+  unsigned long delta;
+  //unsigned int estado=0;
 
-	FILE* output = fopen("solver_lin_solve.csv", "w+");
+  FILE* output = fopen("solver_lin_solve.csv", "w+");
 
-	fluid_solver* solver_pri = solver_create(sizes[3], 0.05, 0, 0);
-	fluid_solver* solver_seg = solver_create(sizes[4], 0.05, 0, 0);
-	fluid_solver* solver_ter = solver_create(sizes[5], 0.05, 0, 0);
-	FILE* out_asm_128 = fopen("asm_128.csv", "a");
-	FILE* out_c_128 = fopen("c_128.csv", "a");
+  fluid_solver* solver_pri = solver_create(sizes[3], 0.05, 0, 0);
+  fluid_solver* solver_seg = solver_create(sizes[4], 0.05, 0, 0);
+  fluid_solver* solver_ter = solver_create(sizes[5], 0.05, 0, 0);
+  FILE* out_asm_128 = fopen("asm_128.csv", "a");
+  FILE* out_c_128 = fopen("c_128.csv", "a");
 
-	FILE* out_asm_256 = fopen("asm_256.csv", "a");
-	FILE* out_c_256 = fopen("c_256.csv", "a");
+  FILE* out_asm_256 = fopen("asm_256.csv", "a");
+  FILE* out_c_256 = fopen("c_256.csv", "a");
 
-	FILE* out_asm_512 = fopen("asm_512.csv", "a");
-	FILE* out_c_512 = fopen("c_512.csv", "a");
-	for (int i = 0; i < REPETITIONSSOLVE; i++){
-		//c medida 128
-		RDTSC_START(start);
-		solver_lin_solve_c(solver_pri, b, solver_pri->dens, solver_pri->dens_prev, 0.5, 2);
-		RDTSC_STOP(end);
-		delta = end - start;
-		fprintf(out_c_128, "%lu\n", delta);
+  FILE* out_asm_512 = fopen("asm_512.csv", "a");
+  FILE* out_c_512 = fopen("c_512.csv", "a");
+  for (int i = 0; i < REPETITIONSSOLVE; i++){
+    //c medida 128
+    RDTSC_START(start);
+    solver_lin_solve_c(solver_pri, b, solver_pri->dens, solver_pri->dens_prev, 0.5, 2);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_128, "%lu\n", delta);
 
-		//asm medida 256
-		RDTSC_START(start);
-		solver_lin_solve_asm(solver_seg, b, solver_seg->dens, solver_seg->dens_prev, 2, 8);
-		RDTSC_STOP(end);
-		delta = end - start;
-		fprintf(out_asm_256, "%lu\n", delta);
+    //asm medida 256
+    RDTSC_START(start);
+    solver_lin_solve_asm(solver_seg, b, solver_seg->dens, solver_seg->dens_prev, 2, 8);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_asm_256, "%lu\n", delta);
 
-		//c medda 512
-		RDTSC_START(start);
-		solver_lin_solve_c(solver_ter, b, solver_ter->dens, solver_ter->dens_prev, 1, 4);
-		RDTSC_STOP(end);
-		delta = end - start;
-		fprintf(out_c_512, "%lu\n", delta);
+    //c medda 512
+    RDTSC_START(start);
+    solver_lin_solve_c(solver_ter, b, solver_ter->dens, solver_ter->dens_prev, 1, 4);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_512, "%lu\n", delta);
 
-		//asm medida 128
-		RDTSC_START(start);
-		solver_lin_solve_asm(solver_pri, b, solver_pri->dens, solver_pri->dens_prev, 0.5, 2);
-		RDTSC_STOP(end);
-		delta = end - start;
-		fprintf(out_asm_128, "%lu\n", delta);
+    //asm medida 128
+    RDTSC_START(start);
+    solver_lin_solve_asm(solver_pri, b, solver_pri->dens, solver_pri->dens_prev, 0.5, 2);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_asm_128, "%lu\n", delta);
 
-		//c medida 256
-		RDTSC_START(start);
-		solver_lin_solve_c(solver_seg, b, solver_seg->dens, solver_seg->dens_prev, 2, 8);
-		RDTSC_STOP(end);
-		delta = end - start;
-		fprintf(out_c_256, "%lu\n", delta);
+    //c medida 256
+    RDTSC_START(start);
+    solver_lin_solve_c(solver_seg, b, solver_seg->dens, solver_seg->dens_prev, 2, 8);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_256, "%lu\n", delta);
 
-		//asm medda 512
-		RDTSC_START(start);
-		solver_lin_solve_asm(solver_ter, b, solver_ter->dens, solver_ter->dens_prev, 1, 4);
-		RDTSC_STOP(end);
-		delta = end - start;
-		printf("iteracion %i \n", i);
-		fprintf(out_asm_512, "%lu\n", delta);
-	}
-	return 0;
+    //asm medda 512
+    RDTSC_START(start);
+    solver_lin_solve_asm(solver_ter, b, solver_ter->dens, solver_ter->dens_prev, 1, 4);
+    RDTSC_STOP(end);
+    delta = end - start;
+    printf("iteracion %i \n", i);
+    fprintf(out_asm_512, "%lu\n", delta);
+  }
+  return 0;
+}
+
+int run_solver_project(){
+  uint32_t b = 0;
+  unsigned long start;
+  unsigned long end;
+  unsigned long delta;
+  //unsigned int estado=0;
+
+  FILE* output = fopen("solver_project.csv", "w+");
+
+  fluid_solver* solver_pri = solver_create(sizes[3], 0.05, 0, 0);
+  fluid_solver* solver_seg = solver_create(sizes[4], 0.05, 0, 0);
+  fluid_solver* solver_ter = solver_create(sizes[5], 0.05, 0, 0);
+  FILE* out_asm_128 = fopen("asm_128.csv", "a");
+  FILE* out_c_128 = fopen("c_128.csv", "a");
+
+  FILE* out_asm_256 = fopen("asm_256.csv", "a");
+  FILE* out_c_256 = fopen("c_256.csv", "a");
+
+  FILE* out_asm_512 = fopen("asm_512.csv", "a");
+  FILE* out_c_512 = fopen("c_512.csv", "a");
+  for (int i = 0; i < REPETITIONSSOLVE; i++){
+    //c medida 128
+    RDTSC_START(start);
+    solver_project_c(solver_pri, solver_pri->u_prev, solver_pri->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_128, "%lu\n", delta);
+
+    //asm medida 128
+    RDTSC_START(start);
+    solver_project_asm(solver_pri, solver_pri->u_prev, solver_pri->v_prev);
+    
+    RDTSC_STOP(end);
+    delta = end - start;
+    // fprintf(out_asm_128, "%lu\n", delta);
+
+    //c medida 256
+    RDTSC_START(start);
+    solver_project_c(solver_seg, solver_seg->u_prev, solver_seg->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_256, "%lu\n", delta);
+
+    //asm medida 256
+    RDTSC_START(start);
+    solver_project_asm(solver_seg, solver_seg->u_prev, solver_seg->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_asm_256, "%lu\n", delta);
+
+    //c medda 512
+    RDTSC_START(start);
+    solver_project_c(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_512, "%lu\n", delta);
+
+    //asm medda 512
+    RDTSC_START(start);
+    solver_project_asm(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    printf("iteracion %i \n", i);
+    fprintf(out_asm_512, "%lu\n", delta);
+  }
+  return 0;
+}
+
+int run_solver_project(){
+  uint32_t b = 0;
+  unsigned long start;
+  unsigned long end;
+  unsigned long delta;
+  //unsigned int estado=0;
+
+  FILE* output = fopen("solver_project_512.csv", "w+");
+
+  fluid_solver* solver_ter = solver_create(sizes[5], 0.05, 0, 0);
+
+  FILE* out_asm_128 = fopen("asm_128.csv", "a");
+  FILE* out_asm_256 = fopen("asm_256.csv", "a");
+  FILE* out_asm_512 = fopen("asm_512.csv", "a");
+  FILE* out_c_128 = fopen("c_128.csv", "a");
+  FILE* out_c_256 = fopen("c_256.csv", "a");
+  FILE* out_c_512 = fopen("c_512.csv", "a");
+  
+  for (int i = 0; i < REPETITIONSSOLVE; i++){
+    //c medda 128
+    RDTSC_START(start);
+    solver_project_c(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_128, "%lu\n", delta);
+
+    //asm medda 128
+    RDTSC_START(start);
+    solver_project_asm(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_asm_128, "%lu\n", delta);
+
+    //c medda 256
+    RDTSC_START(start);
+    solver_project_c(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_256, "%lu\n", delta);
+
+    //asm medda 256
+    RDTSC_START(start);
+    solver_project_asm(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_asm_256, "%lu\n", delta);
+
+
+    //c medda 512
+    RDTSC_START(start);
+    solver_project_c(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    fprintf(out_c_512, "%lu\n", delta);
+
+    //asm medda 512
+    RDTSC_START(start);
+    solver_project_asm(solver_ter, solver_ter->u_prev, solver_ter->v_prev);
+    RDTSC_STOP(end);
+    delta = end - start;
+    printf("iteracion %i \n", i);
+    fprintf(out_asm_512, "%lu\n", delta);
+  }
+
+  return 0;
 }
 
 int main() {
   run_solver_set_bnd();
   run_solver_lin_solver();
+  run_solver_project();  
 }
