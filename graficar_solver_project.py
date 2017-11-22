@@ -71,10 +71,10 @@ lista_c512_int_O2=lista_c512_int[cantTiempos:2*cantTiempos]
 lista_c512_int_O3=lista_c512_int[2*cantTiempos:3*cantTiempos]
 
 #graficar rendimiento para matriz de 128x128
-lenguajes = ["ASM", "C_O0", "C_O2", "C_O3"]
+lenguajes = ["ASM", "C_O3", "C_O2", "C_O0"]
 colors = ['#d3c0ab', '#babbb4', '#dda1ad', '#b9b8a4']
 x = np.arange(1, len(lenguajes) + 1)
-medianas_128 = [np.median(lista_asm128_int), np.median(lista_c128_int_O0), np.median(lista_c128_int_O2), np.median(lista_c128_int_O3)]
+medianas_128 = [np.median(lista_asm128_int), np.median(lista_c128_int_O3), np.median(lista_c128_int_O2), np.median(lista_c128_int_O0)]
 
 plt.ylabel('Mediana Clocks')
 plt.xlabel('Implementaciones - Matriz 128 x 128')
@@ -86,7 +86,7 @@ plt.show()
 
 #graficar rendimiento para matriz de 256x256
 x = np.arange(1, len(lenguajes) + 1)
-medianas_256 = [np.median(lista_asm256_int), np.median(lista_c256_int_O0), np.median(lista_c256_int_O2), np.median(lista_c256_int_O3)]
+medianas_256 = [np.median(lista_asm256_int), np.median(lista_c256_int_O3), np.median(lista_c256_int_O2), np.median(lista_c256_int_O0)]
 
 plt.ylabel('Mediana Clocks')
 plt.xlabel('Implementaciones - Matriz 256 x 256')
@@ -98,7 +98,7 @@ plt.show()
 
 #graficar rendimiento para matriz de 512x512
 x = np.arange(1, len(lenguajes) + 1)
-medianas_512 = [np.median(lista_asm512_int), np.median(lista_c512_int_O0), np.median(lista_c512_int_O2), np.median(lista_c512_int_O3)]
+medianas_512 = [np.median(lista_asm512_int), np.median(lista_c512_int_O3), np.median(lista_c512_int_O2), np.median(lista_c512_int_O0)]
 
 plt.ylabel('Mediana Clocks')
 plt.xlabel('Implementaciones - Matriz 512 x 512')
