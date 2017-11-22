@@ -44,33 +44,28 @@ Solver$\_$set$\_$bnd se implementó de la siguiente manera:
 \end{itemize}
 
 \subsection{solver\_project}
-En cuanto al desarrollo de solver\_project, tuvimos q aplicar una formula a cada celda de la matriz, luego llamar solver\_set\_bnd y solver\_lin\_solve, y luego volver a procesar las celdas de la matriz.
-El metodo funciona de la siguiente manera:
-
-
-
-; 	div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N;
-	; 	p[IX(i,j)] = 0;
+En cuanto al desarrollo de solver\_project, tuvimos q aplicar una f\'ormula a cada celda de la matriz, luego llamar solver\_set\_bnd y solver\_lin\_solve, y luego volver a procesar las celdas de la matriz.
+El m\'etodo funciona de la siguiente manera:
 
 \begin{itemize}
 \item El algoritmo cuenta con un ciclo incial, llamado a funciones auxiliares, otro ciclo, y otro llamado a funciones auxiliares.
-\item Para recorrer toda la matriz, vamos a realizar dos ciclos, uno dentro de otro, que van a ir desde 1 hasta N + 1, de esta manera no caemos en un caso que no se pueda resolver, ya que los bordes van a ser seteados cuando se llame a solver_set_bnd.
-\item Vamos a procesar 4 celdas por iteracion del ciclo, de esta manera, podemos procesar multiples datos en cada iteracion.
-\item Empezamos guardandonos mascaras, que contienen $|N|N|N|N|$ y $|-0.5f|-0.5f|-0.5f|-0.5f|$, para poder realizar los calculos necesarios.
+\item Para recorrer toda la matriz, vamos a realizar dos ciclos, uno dentro de otro, que van a ir desde 1 hasta N + 1, de esta manera no caemos en un caso que no se pueda resolver, ya que los bordes van a ser seteados cuando se llame a $solver_set_bnd$.
+\item Vamos a procesar 4 celdas por iteraci\'on del ciclo, de esta manera, podemos procesar m\'ultiples datos en cada iteraci\'on.
+\item Empezamos guardandonos m\'ascaras, que contienen $|N|N|N|N|$ y $|-0.5f|-0.5f|-0.5f|-0.5f|$, para poder realizar los c\'alculos necesarios.
 \item Luego, pasamos al primer ciclo, comenzamos por traer 4 celdas de source al comienzo del ciclo.
-\item Para operar con las celdas en posiciones $j+1$ y $j-1$, vamos a traernos en cada iteracion las 4 celdas actuales, las 4 celdas que se encuentran en la fila anterior, restando una fila al contador de filas, arriba de las actuales y las 4 celdas de la fila siguiente, sumando una fila al contador de las filas, que se encuentran debajo de las actuales.
-\item De esta manera podemos realizar el computo $solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)]$
+\item Para operar con las celdas en posiciones $j+1$ y $j-1$, vamos a traernos en cada iteraci\'on las 4 celdas actuales, las 4 celdas que se encuentran en la fila anterior, restando una fila al contador de filas, arriba de las actuales y las 4 celdas de la fila siguiente, sumando una fila al contador de las filas, que se encuentran debajo de las actuales.
+\item De esta manera podemos realizar el c\'omputo $solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)]$
 \item Luego, vamos a traernos las 4 celdas anteriores de la misma fila y las 4 celdas siguientes de la misma fila.
 \item Utilizando SHIFTS vamos a acomodar los dos registros XMM de manera tal que podamos realizar la resta correspondiente, y obtener el valor de $j+1$ - $j-1$ para las cuatro posiciones que estamos mirando.
-\item De esta manera podemos calcular el computo $solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]$
+\item De esta manera podemos computar $solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]$
 \item Luego, restamos estos dos valores calculados anteriormente, para poder obtener $(solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)])$
-\item Luego, utilizando las mascaras que guardamos al principio, utilizando multiplicaciones y divisiones, podemos obtener el calculo $div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N$.
+\item Luego, utilizando las m\'ascaras que guardamos al principio, utilizando multiplicaciones y divisiones, podemos calcular $div[IX(i,j)] = - 0.5f * (solver->u[IX(i+1,j)] - solver->u[IX(i-1,j)] + solver->v[IX(i,j+1)] - solver->v[IX(i,j-1)]) / solver->N$.
 \item A parte de realizar la asignaci\'on anterior, vamos a asignar ceros para realizar $p[IX(i,j)] = 0;$
 \item Luego, vamos a tener los llamados a $solver_set_bnd ( solver, 0, div )$, $solver_set_bnd ( solver, 0, p )$ y $solver_lin_solve ( solver, 0, p, div, 1, 4 )$.
-\item Luego, vamos a tener el segundo ciclo, este va a estar construido de la misma manera que el anterior, y el procesamiento de datos se va a realizar de la misma manera, la unica diferencia es que las operaciones se van a realizar trayendo los datos de otro puntero. Pero el funcionamiento y la manera de recorrerlo, es igual al anterior.
-\item Por ultimo vamos a realizar los llamados correspondientes a $solver_set_bnd ( solver, 1, solver->u )$ y $solver_set_bnd ( solver, 2, solver->v )$
+\item Luego, vamos a tener el segundo ciclo, este va a estar construido de la misma manera que el anterior, y el procesamiento de datos se va a realizar de la misma manera, la \'unica diferencia es que las operaciones se van a realizar trayendo los datos de otro puntero. Pero el funcionamiento y la manera de recorrerlo, es igual al anterior.
+\item Por \'ultimo vamos a realizar los llamados correspondientes a $solver_set_bnd ( solver, 1, solver->u )$ y $solver_set_bnd ( solver, 2, solver->v )$
 \end{itemize}
 
-De esta manera podemos aplicar el modelo SIMD a nuestro metodo. Aprovechando poder trabajar con multiples datos a la vez, nos vamos a ahorrar operaciones, lo que implica un menor tiempo de computo, y una performance mas alta de nuestro algoritmo.
+De esta manera podemos aplicar el modelo SIMD a nuestro m\'etodo. Aprovechando poder trabajar con m\'ultiples datos a la vez, nos vamos a ahorrar operaciones, lo que implica un menor tiempo de c\'omputo, y una mejor performance de nuestro algoritmo.
 
  

@@ -8,55 +8,62 @@ Como se puede apreciar en las figuras de la sección anterior, ASM tiene clocks 
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksCYASM.png}
-  	\caption{ASM VS C solver$\_$set$\_$bnd}
-  	\label{fig:ASMU}
+    \includegraphics[width=.6\linewidth]{ClocksCYASM.png}
+    \caption{ASM VS C solver$\_$set$\_$bnd}
+    \label{fig:ASMU}
 \end{figure}
 
 A su vez, si en vez de 750 repeticiones se hicieran menos, los datos que se obtienen cada vez son mas proclives a errores. Concluimos que por la ley de los grandes números cuando tenemos una muestra menor se pueden producir varios errores en las experimentaciones como lo demuestra el siguiente gráfico con 200 iteraciones. Se pueden comparar fácilmente con los datos obtenidos y postulados en la sección Resultados.
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksCYASMMAL.png}
-  	\caption{ASM VS C solver$\_$set$\_$bnd con 200 iteraciones}
-  	\label{fig:ASMU}
+    \includegraphics[width=.6\linewidth]{ClocksCYASMMAL.png}
+    \caption{ASM VS C solver$\_$set$\_$bnd con 200 iteraciones}
+    \label{fig:ASMU}
 \end{figure}
 
 {\scshape\Large solver$\_$lin$\_$solve\par}
 
-Se puede ver que asm tarda menos que todos los niveles de optimizacion para los tres tamaño de matrices. Para poder tener mas certeza que esto pasa y de que los outliers no sean muchos en cada muestra, en vez de probar con 1000 repeticiones el experimento anterior, se probo para una matriz de 512 con 50, 125, 250, 500, 2000 y 3000. Y se puede observar que los nuevos graficos son muy similares a los del experimento de la seccion resutados. Entonces esto nos quiere decir que asm tarda menos que los diferentes niveles de optimizacion tanto para pocas repeticiones como muchas. 
+Se puede ver que asm tarda menos que todos los niveles de optimizacion para los tres tamaños de matrices. Para poder tener mas certeza que esto pasa y de que los outliers no sean muchos en cada muestra, en vez de probar con 1000 repeticiones el experimento anterior, se probo para una matriz de 512 con 50, 125, 250, 500, 2000 y 3000. Y se puede observar que los nuevos graficos son muy similares a los del experimento de la seccion resutados. Entonces esto nos quiere decir que asm tarda menos que los diferentes niveles de optimizacion tanto para pocas repeticiones como muchas. 
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_512_50.png}
-  	\caption{Performance para matriz de 512x512 con 50 repeticiones}
-  	\label{fig:M50it}
+    \includegraphics[width=.6\linewidth]{Matriz_512_50.png}
+    \caption{Performance para matriz de 512x512 con 50 repeticiones}
+    \label{fig:M50it}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_512_500.png}
-  	\caption{Performance para matriz de 512x512 con 500 repeticiones}
-  	\label{fig:M500it}
+    \includegraphics[width=.6\linewidth]{Matriz_512_500.png}
+    \caption{Performance para matriz de 512x512 con 500 repeticiones}
+    \label{fig:M500it}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_512_3000.png}
-  	\caption{Performance para matriz de 512x512 con 3000 repeticiones}
-  	\label{fig:M3000it}
+    \includegraphics[width=.6\linewidth]{Matriz_512_3000.png}
+    \caption{Performance para matriz de 512x512 con 3000 repeticiones}
+    \label{fig:M3000it}
 \end{figure}
 
-{\scshape\Large solver$\_$lin$\_$solve\par}
+\newpage
 
-Podemos observar que utilizar operaciones SIMD en lenguaje ASM, tiene una mejor performance al compararlo con las distintas optimizaciones de compilacion de codigo C.
-Tambien probamos para una matriz de 512 con 50, 125, 250, 500, 2000 y 3000 iteraciones.
-En los graficos podemos apreciar que ya sea en poca cantidad de iteraciones o en una cantidad alta, el codigo ASM es mas rapido que el codigo en C.
-Otra posible mejora que se podria realizar al codigo, es alinear la memoria y trabajar con la memoria alineada.
-De esta manera, deberiamos alinear la matriz inicial a modulo 16-4 y debemos cambiar las operaciones SIMD que trabajan con memoria desalineada, a las correspondientes para memoria alineada.
-Con esta mejora debemos poder ver que los tiempos de corrida del algoritmo, van a ser menores que los mencionados anteriormente en la seccion de resultados.
+{\scshape\Large solver$\_$project\par}
 
-
+Podemos observar que utilizar operaciones SIMD en lenguaje ASM, tiene una mejor performance al compararlo con las distintas optimizaciones de compilaci\'on de c\'odigo C.
+Para poder reafirmar esto, hicimos distintas corridas sobre una matriz de 512x512 
+Realizamos 50, 500 y 3000 iteraciones, para poder ver que independientemente del n\'umero, los tiempos siempre son superiores para el c\'odigo ASM.\\
+En una mayor cantidad de iteraciones los tiempos mejoran, y se van estabilizando.
+Una posible mejora que se podr\'ia realizar al c\'odigo, es alinear la memoria y trabajar con la memoria alineada.\newline
+De esta manera, deberiamos alinear la matriz inicial y debemos cambiar las operaciones SIMD que trabajan con memoria desalineada, a las correspondientes para memoria alineada.
+Con esta mejora debemos poder ver que los tiempos de corrida del algoritmo, van a ser menores que los mencionados anteriormente en la secci\'on de resultados.
+A continuaci\'on podemos ver una figura que muestra los tiempos para las distintas cantidades de iteraciones y las distintas optimizaciones del c\'odigo C y ASM.
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=.6\linewidth]{512x512_results.png}
+    \caption{Tiempos para matriz de 512x512 con distinto n\'umero de iteraciones}
+\end{figure}
 
 
 

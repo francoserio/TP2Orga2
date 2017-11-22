@@ -12,25 +12,25 @@ Para un tamaño de matriz en un fichero estaran los clocks que le toma ejecutar 
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_128.png}
-  	\caption{Performance para Matriz 128x128}
-  	\label{fig:M128}
+    \includegraphics[width=.6\linewidth]{Matriz_128.png}
+    \caption{Performance para Matriz 128x128}
+    \label{fig:M128}
 \end{figure}
 
 \pagebreak
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_256.png}
-  	\caption{Performance para Matriz 256x256}
-  	\label{fig:M256}
+    \includegraphics[width=.6\linewidth]{Matriz_256.png}
+    \caption{Performance para Matriz 256x256}
+    \label{fig:M256}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{Matriz_512.png}
-  	\caption{Performance para Matriz 512x512}
-  	\label{fig:M512}
+    \includegraphics[width=.6\linewidth]{Matriz_512.png}
+    \caption{Performance para Matriz 512x512}
+    \label{fig:M512}
 \end{figure}
 
 \newpage
@@ -44,43 +44,64 @@ Todo esto se vuelca en un csv, donde por python, con las bibliotecas NumPy y Mat
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksASMU.png}
-  	\caption{Código ASM con matriz U}
-  	\label{fig:ASMU}
+    \includegraphics[width=.6\linewidth]{ClocksASMU.png}
+    \caption{Código ASM con matriz U}
+    \label{fig:ASMU}
 \end{figure}
 
 \pagebreak
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksASMV.png}
-  	\caption{Código ASM con matriz V}
-  	\label{fig:ASMV}
+    \includegraphics[width=.6\linewidth]{ClocksASMV.png}
+    \caption{Código ASM con matriz V}
+    \label{fig:ASMV}
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksCU.png}
-  	\caption{Código C con matriz U}
-  	\label{fig:CU}
+    \includegraphics[width=.6\linewidth]{ClocksCU.png}
+    \caption{Código C con matriz U}
+    \label{fig:CU}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  	\includegraphics[width=.6\linewidth]{ClocksCV.png}
-  	\caption{Código C con matriz V}
-  	\label{fig:CV}
+    \includegraphics[width=.6\linewidth]{ClocksCV.png}
+    \caption{Código C con matriz V}
+    \label{fig:CV}
 \end{figure}
 
 \pagebreak
 
 \subsection{solver\_project}
 
-En $solver_project$ se realizaron 1000 ejecuciones de nuestro codigo en ASM y nuestro codigo en C, con las correspondientes optimizaciones O, O2, O3. Las ejecuciones se realizaron para distintos tamaños de matrices.
-Los tamaños que utilizamos fueron de 128, 256 y 512.
-En cada ejecucion, tomamos los tiempos de corrida del algoritmo, para poder utilizarlos para realiar graficos, para poder ver de manera mas clara cual es el rendimiento de nuestro codigo en ASM comparado con el codigo en C.
-Las mediciones realizadas las almacenamos en un archivo csv, el cual utilizamos para realizar los graficos mencionados anteirormente.
-Los graficos los realizamos utilizando codigo Python, con las bibliotecas Numpy y Matplotlib.
-En los graficos, expuestos a continuacion, podemos observar que nuestra hipotesis se cumple.
-Es clara la superioridad de performance del codigo ASM con operaciones SIMD, a comparacion de C.
-Y lo que podemos ver es que por mas que utilicemos las distintas optimizaciones para compilar el codigo C, igualmente el codigo ASM sigue siendo mas performante.
+En $solver_project$ se realizaron 1000 ejecuciones de nuestro c\'odigo en ASM y nuestro c\'odigo en C, con las correspondientes optimizaciones O0, O2, O3. Las ejecuciones se realizaron para distintos tamaños de matrices.
+Los tamaños que utilizamos fueron de 128x128, 256x256 y 512x512.
+En cada ejecuci\'on, tomamos los tiempos de corrida del algoritmo, para poder utilizarlos para realiar gr\'aficos, para poder ver de manera mas clara cual es el rendimiento de nuestro c\'odigo en ASM comparado con el c\'odigo en C.
+Las mediciones realizadas las almacenamos en un archivo csv, el cual utilizamos para realizar los gr\'aficos mencionados anteriormente.
+Los gr\'aficos los realizamos utilizando codigo Python, con las bibliotecas Numpy y Matplotlib.
+En los gr\'aficos, expuestos a continuaci\'on, podemos observar que nuestra hip\'otesis se cumple.
+Es clara la superioridad de performance del codigo ASM con operaciones SIMD, a comparaci\'on de C.
+Y lo que podemos ver es que por mas que utilicemos las distintas optimizaciones para compilar el c\'odigo C, igualmente el codigo ASM sigue siendo mas performante.
 
-graficos
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=.6\linewidth]{128x128.png}
+    \caption{Tiempos para Matriz 128x128}
+    \label{fig:M128}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=.6\linewidth]{256x256.png}
+    \caption{Tiempos para Matriz 256x256}
+    \label{fig:M256}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=.6\linewidth]{512x512.png}
+    \caption{Tiempos para Matriz 512x512}
+    \label{fig:M512}
+\end{figure}
 
